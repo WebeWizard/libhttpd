@@ -6,7 +6,7 @@ use requesturi::RequestURI;
 
 pub struct Request
 {
-	priv bufStream: BufferedStream<TcpStream>,
+	bufStream: BufferedStream<TcpStream>,
 	priv method: Method,
 	priv uri: RequestURI,
 	priv headers: Headers
@@ -14,7 +14,7 @@ pub struct Request
 
 pub struct Headers
 {
-	priv headers: ~[Header]
+	headers: ~[Header]
 }
 
 pub struct Header
@@ -58,14 +58,7 @@ impl Request
 			uri: uri,
 			headers: headers
 		};
-			
+		
 		return request;
 	}
-	
-	pub fn respond(&mut self)
-	{
-		self.bufStream.write(bytes!("I am the greatest\r\n"));
-		self.bufStream.flush();
-	}
-
 }

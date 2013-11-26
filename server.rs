@@ -4,6 +4,7 @@ use std::io::{Listener, Acceptor};
 use std::io::net::tcp::TcpListener;
 
 use request::Request;
+use response::Response;
 
 pub fn start()
 {
@@ -19,8 +20,12 @@ pub fn start()
 		let stream = Cell::new( tcpAcceptor.accept().unwrap() );
 		do spawn {
 			let tcpStream = stream.take();
-			let mut tcpRequest: Request = Request::new(tcpStream);
-			tcpRequest.respond();
+			//build tcprequest from the tcpstream
+			let tcpRequest: Request = Request::new( tcpStream );
+			//build a response from a valid request;
+			let tcpResponse: Response = Response::new( tcpRequest );
+			//send the valid response;
+			tcpResponse.respond();
 		}
 	}
 }
