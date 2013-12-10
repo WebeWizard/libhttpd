@@ -5,7 +5,6 @@ use method::Method;
 
 pub struct Request
 {
-	bufStream: BufferedStream<TcpStream>,
 	method: Method,
 	uri: ~str,
 	headers: Headers
@@ -18,17 +17,14 @@ pub struct Headers
 
 pub struct Header
 {
-	priv key: ~str,
-	priv value: ~str
+	key: ~str,
+	value: ~str
 }
 
 impl Request
 {
-	pub fn new(tcpStream: TcpStream) -> Request
+	pub fn new(bufStream: &mut BufferedStream<TcpStream>) -> Request
 	{
-		//wrap the stream in a buffer
-		let mut bufStream = BufferedStream::new(tcpStream);
-		
 		//create an iterator to split request line into words (separated by any white space)
 		let requestLine = bufStream.read_line().unwrap();
 		let mut requestIter = requestLine.words();
@@ -52,7 +48,6 @@ impl Request
 		
 		//build the request from gathered parts
 		let request = Request { 
-			bufStream: bufStream,
 			method: method,
 			uri: uri,
 			headers: headers

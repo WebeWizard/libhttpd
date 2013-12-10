@@ -2,9 +2,10 @@ use std::cell::Cell;
 use std::io::net::ip::{SocketAddr, Ipv4Addr};
 use std::io::{Listener, Acceptor};
 use std::io::net::tcp::TcpListener;
+use std::io::buffered::BufferedStream;
 
 use request::Request;
-use response::Response;
+use response;
 
 pub fn start()
 {
@@ -20,12 +21,12 @@ pub fn start()
 		let stream = Cell::new( tcpAcceptor.accept().unwrap() );
 		do spawn {
 			let tcpStream = stream.take();
-			//build tcprequest from the tcpstream
-			let tcpRequest: Request = Request::new( tcpStream );
-			//build a response from a valid request;
-			let tcpResponse: Response = Response::new( tcpRequest );
-			//send the valid response;
-			tcpResponse.respond();
+			//wrap the stream in a buffer
+			let mut bufStream = BufferedStream::new( tcpStream );
+			//build tcprequest from the bufStream
+			let tcpRequest: Request = Request::new( &mut bufStream );
+			//respond to the request
+			response::respond( &tcpRequest, &mut bufStream );
 		}
 	}
 }
