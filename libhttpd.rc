@@ -1,5 +1,5 @@
 #[crate_type = "lib"];
-#[link( name = "httpd", vers = "0.1", package_id = "libhttpd" )];
+#[crate_id = "httpd#0.1"];
 
 extern mod std;
 extern mod extra;

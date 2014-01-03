@@ -1,4 +1,3 @@
-use std::cell::Cell;
 use std::io::net::ip::{SocketAddr, Ipv4Addr};
 use std::io::{Listener, Acceptor};
 use std::io::net::tcp::TcpListener;
@@ -18,9 +17,9 @@ pub fn start()
 	println("listener is ready");
 	
 	loop {
-		let stream = Cell::new( tcpAcceptor.accept().unwrap() );
+		let stream = tcpAcceptor.accept().unwrap();
 		do spawn {
-			let tcpStream = stream.take();
+			let tcpStream = stream;
 			//wrap the stream in a buffer
 			let mut bufStream = BufferedStream::new( tcpStream );
 			//build tcprequest from the bufStream

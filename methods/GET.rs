@@ -1,4 +1,5 @@
 use std::os;
+use std::vec;
 
 use status::Status;
 use request::Request;
@@ -6,7 +7,7 @@ use request::Request;
 use std::io::buffered::BufferedStream;
 use std::io::net::tcp::TcpStream;
 
-use std::io::fs;
+use std::io::{File, fs};
 
 pub enum ResponseType
 {
@@ -78,8 +79,16 @@ pub fn get( request: &Request , bufStream: &mut BufferedStream<TcpStream>) -> bo
 		FILE => 
 		{
 			
-			bufStream.write(bytes!("I am a file"));
-			bufStream.flush();
+			//bufStream.write(bytes!("I am a file"));
+			let mut file: File = File::open( &path ).unwrap();
+			let mut buf  = vec::from_elem(8129, 0u8);
+			while ( !file.eof() )
+			{
+				file.read( buf );
+				bufStream.write( buf );
+				bufStream.flush();
+			}
+			
 		},
 		DIR =>
 		{
