@@ -83,7 +83,7 @@ pub fn get( request: &Request , bufStream: &mut BufferedStream<TcpStream>) -> bo
 		DIR =>
 		{
 			//TODO: Check to see if an index.html file exists, if so, validate and send it instead of dir contentes
-			let indexhtmlPath: Path = Path::new( workingStr + request.uri + "index.html");
+			let indexPath: Path = Path::new( workingStr + request.uri + "index.html");
 			if ( indexPath.is_file() )
 			{
 				fileResponse( &indexPath, bufStream);
