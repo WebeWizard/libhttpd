@@ -78,27 +78,25 @@ pub fn get( request: &Request , bufStream: &mut BufferedStream<TcpStream>) -> bo
 		//TODO: Move these responses into their own functions
 		FILE => 
 		{
-			
-			//bufStream.write(bytes!("I am a file"));
-			let mut file: File = File::open( &path ).unwrap();
-			let mut buf  = vec::from_elem(8129, 0u8);
-			while ( !file.eof() )
-			{
-				file.read( buf );
-				bufStream.write( buf );
-				bufStream.flush();
-			}
-			
+			fileResponse( &path, bufStream );
 		},
 		DIR =>
 		{
 			//TODO: Check to see if an index.html file exists, if so, validate and send it instead of dir contentes
-			let dirContents = fs::readdir(&path);
-			for entry in dirContents.iter()
+			let indexhtmlPath: Path = Path::new( workingStr + request.uri + "index.html");
+			if ( indexPath.is_file() )
 			{
-            			bufStream.write( entry.filename().unwrap() + bytes!("\r\n") );
-            			bufStream.flush();
-            		}	
+				fileResponse( &indexPath, bufStream);
+			}
+			else
+			{
+				let dirContents = fs::readdir(&path);
+				for entry in dirContents.iter()
+				{
+		    			bufStream.write( entry.filename().unwrap() + bytes!("\r\n") );
+		    			bufStream.flush();
+		    		}
+		    	}
 		},
 		ERROR =>
 		{
@@ -108,4 +106,22 @@ pub fn get( request: &Request , bufStream: &mut BufferedStream<TcpStream>) -> bo
 		}
 	}
 	return true;
+}
+
+fn fileResponse( path: &Path, bufStream: &mut BufferedStream<TcpStream> )
+{
+	let mut file: File = File::open( path ).unwrap();
+	let mut buf  = vec::from_elem(8129, 0u8);
+	while ( !file.eof() )
+	{
+		match file.read(buf)
+		{
+			Some(length) =>
+			{
+				bufStream.write( buf.mut_slice( 0, length) );
+				bufStream.flush();
+			},
+			None => { break; }
+		}
+	}
 }
