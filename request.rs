@@ -7,6 +7,7 @@ pub struct Request
 {
 	method: Method,
 	uri: ~str,
+	queryString: ~str,
 	headers: Headers
 }
 
@@ -29,8 +30,18 @@ impl Request
 		let requestLine = bufStream.read_line().unwrap();
 		let mut requestIter = requestLine.words();
 		
+		//read what method the client wants to use
 		let method = Method::from_str( requestIter.next().unwrap() );
-		let uri = requestIter.next().unwrap().to_owned();
+		
+		//separate the query string ( ?foo=bar&bar=foo ) from the uri ( /my/foo/bar/dir/ )
+		let requestString = requestIter.next().unwrap().to_owned();
+		let requestParts: ~[&str] = requestString.as_slice().splitn( '?', 1 ).collect();
+		let uri = requestParts[0].to_owned();
+		let mut queryString = ~"";
+		if ( requestParts.capacity() > 1 )
+		{
+			queryString = requestParts[1].to_owned();
+		}
 		
 		//read all remaining lines of the header
 		let mut headersVector: ~[Header] = ~[];
@@ -50,6 +61,7 @@ impl Request
 		let request = Request { 
 			method: method,
 			uri: uri,
+			queryString: queryString,
 			headers: headers
 		};
 		

@@ -8,7 +8,7 @@ use methods::GET;
 
 
 	
-//respond:  writes the information stored in the Response struct into the struct's bufStream
+//respond:	Decides how to respond to the request, and then does so.
 pub fn respond( request: &Request , bufStream: &mut BufferedStream<TcpStream> ) -> bool
 {
 	let mut successFlag: bool;
