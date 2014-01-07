@@ -1,4 +1,4 @@
-use std::io::net::ip::{SocketAddr, Ipv4Addr};
+use std::io::net::ip::{IpAddr, SocketAddr, Ipv4Addr};
 use std::io::{Listener, Acceptor};
 use std::io::net::tcp::TcpListener;
 use std::io::buffered::BufferedStream;
@@ -13,6 +13,8 @@ use response;
 
 pub struct Server
 {
+	ip: IpAddr,
+	port: u16,
 	settings: ~[~str],
 	contextMap: HashMap<~str, Context>
 }
@@ -22,9 +24,34 @@ impl Server
 	//Creates and returns a new Server struct with blank/default settings.
 	pub fn new() -> Server
 	{
-		let blankSettings: ~[~str] = ~[];
-		let blankContextMap = HashMap::<~str, Context>::new();
-		let server: Server = Server { settings: blankSettings, contextMap: blankContextMap };
+		let server: Server = Server {
+			ip: Ipv4Addr( 127,0,0,1 ),
+			port: 9123,
+			settings: ~[],
+			contextMap: HashMap::<~str, Context>::new()
+		};
+		return server;
+	}
+	
+	pub fn newFromPort( port: u16 ) -> Server
+	{
+		let server: Server = Server {
+			ip: Ipv4Addr( 127,0,0,1 ),
+			port: port,
+			settings: ~[],
+			contextMap: HashMap::<~str, Context>::new()
+		};
+		return server;
+	}
+	
+	pub fn newFromIpAddr( ip: IpAddr, port: u16 ) -> Server
+	{
+		let server: Server = Server {
+			ip: ip,
+			port: port,
+			settings: ~[],
+			contextMap: HashMap::<~str, Context>::new()
+		};
 		return server;
 	}
 	
@@ -34,7 +61,7 @@ impl Server
 		//static bindAddress: &'static str = "127.0.0.1";
 		//static bindPort: uint = 9123;
 
-		let mut tcpAcceptor = TcpListener::bind( SocketAddr { ip: Ipv4Addr(127,0,0,1) , port: 9123 } ).listen().unwrap();
+		let mut tcpAcceptor = TcpListener::bind( SocketAddr { ip: self.ip , port: self.port } ).listen().unwrap();
 		//println( format!("Server is listening on IP: {:s} , Port: {:u}", bindAddress, bindPort) );
 
 		println("listener is ready");
@@ -53,11 +80,27 @@ impl Server
 				let mut bufStream = BufferedStream::new( tcpStream );
 				//build tcprequest from the bufStream
 				let tcpRequest: Request = Request::new( &mut bufStream );
-				//respond to the request
-				if ( contextMap.contains_key( &tcpRequest.uri ) )
+				
+				//search through the contexts and subcontexts to see if the uri matches any
+				let mut uriSplitIter = tcpRequest.uri.split('/');
+				uriSplitIter.next(); //toss the beginning / into the garbage
+				let mut currentKey = uriSplitIter.next().unwrap().to_owned();
+				//iterate over the parts of the uri to find the deepest context
+				if ( contextMap.contains_key( &currentKey ) )
 				{
-					(contextMap.get( &tcpRequest.uri ).action)();
+					let mut currentContext: &Context = contextMap.get( &currentKey );
+					for key in uriSplitIter
+					{
+						currentKey = key.to_owned();
+						if ( currentContext.subContextMap.contains_key( &currentKey ) )
+						{
+							currentContext = currentContext.subContextMap.get( &currentKey );
+						} else { break; }
+					}
+					//finally. perform the action of the deepest context
+					(currentContext.action)();
 				} else {
+					//if uri didn't match any context, perform the normal web server response
 					response::respond( &tcpRequest, &mut bufStream );
 				}
 			}
