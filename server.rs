@@ -78,30 +78,40 @@ impl Server
 				let tcpStream = stream;
 				//wrap the stream in a buffer
 				let mut bufStream = BufferedStream::new( tcpStream );
-				//build tcprequest from the bufStream
-				let tcpRequest: Request = Request::new( &mut bufStream );
 				
-				//search through the contexts and subcontexts to see if the uri matches any
-				let mut uriSplitIter = tcpRequest.uri.split('/');
-				uriSplitIter.next(); //toss the beginning / into the garbage
-				let mut currentKey = uriSplitIter.next().unwrap().to_owned();
-				//iterate over the parts of the uri to find the deepest context
-				if ( contextMap.contains_key( &currentKey ) )
+				let mut keepAlive = true;
+				while ( keepAlive )
 				{
-					let mut currentContext: &Context = contextMap.get( &currentKey );
-					for key in uriSplitIter
+					//build tcprequest from the bufStream
+					let tcpRequest: Request = Request::new( &mut bufStream );
+					
+					if ( tcpRequest.headers.get( &~"Connection" ) == &~"close" )
 					{
-						currentKey = key.to_owned();
-						if ( currentContext.subContextMap.contains_key( &currentKey ) )
-						{
-							currentContext = currentContext.subContextMap.get( &currentKey );
-						} else { break; }
+						keepAlive = false;
 					}
-					//finally. perform the action of the deepest context
-					(currentContext.action)();
-				} else {
-					//if uri didn't match any context, perform the normal web server response
-					response::respond( &tcpRequest, &mut bufStream );
+					
+					//search through the contexts and subcontexts to see if the uri matches any
+					let mut uriSplitIter = tcpRequest.uri.split('/');
+					uriSplitIter.next(); //toss the beginning / into the garbage
+					let mut currentKey = uriSplitIter.next().unwrap().to_owned();
+					//iterate over the parts of the uri to find the deepest context
+					if ( contextMap.contains_key( &currentKey ) )
+					{
+						let mut currentContext: &Context = contextMap.get( &currentKey );
+						for key in uriSplitIter
+						{
+							currentKey = key.to_owned();
+							if ( currentContext.subContextMap.contains_key( &currentKey ) )
+							{
+								currentContext = currentContext.subContextMap.get( &currentKey );
+							} else { break; }
+						}
+						//finally. perform the action of the deepest context
+						(currentContext.action)();
+					} else {
+						//if uri didn't match any context, perform the normal web server response
+						response::respond( &tcpRequest, &mut bufStream );
+					}
 				}
 			}
 		}

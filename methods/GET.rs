@@ -1,5 +1,6 @@
 use std::os;
 use std::vec;
+use std::str;
 
 use status::Status;
 use request::Request;
@@ -64,13 +65,8 @@ pub fn get( request: &Request , bufStream: &mut BufferedStream<TcpStream>) -> bo
 	let statusLine: ~str = format!( "HTTP/1.1 {:s} {:s}\r\n", status.statusCode, status.reason );
 	bufStream.write( statusLine.as_bytes() );
 	bufStream.flush();
+
 	
-	//TODO: send response headers
-	
-	
-	//end the repsonse header with a blank line
-	bufStream.write(bytes!("\r\n"));
-	bufStream.flush();
 	
 	//send the message
 	match responseType
@@ -91,16 +87,29 @@ pub fn get( request: &Request , bufStream: &mut BufferedStream<TcpStream>) -> bo
 			else
 			{
 				let dirContents = fs::readdir(&path);
+				let mut dirContentsResponse = ~"";
 				for entry in dirContents.iter()
 				{
-		    			bufStream.write( entry.filename().unwrap() + bytes!("\r\n") );
-		    			bufStream.flush();
+					dirContentsResponse = dirContentsResponse + str::from_utf8( entry.filename().unwrap() ) + "\r\n";
 		    		}
+		    		let dirContentsBytes = dirContentsResponse.as_bytes();
+		    		let contentLengthString = format!( "Content-Length: {}\r\n", dirContentsBytes.len() );
+		    		bufStream.write( contentLengthString.as_bytes() );
+		    		//end the repsonse header with a blank line
+				bufStream.write(bytes!("\r\n"));
+				bufStream.flush();
+		    		bufStream.write( dirContentsBytes );
+		    		bufStream.flush();
 		    	}
 		},
 		ERROR =>
 		{
 			let errorLine: ~str = format!( "ERROR: {:s} , {:s} ", status.statusCode, status.reason);
+			let contentLengthString = format!( "Content-Length: {}\r\n", errorLine.len() );
+		    	bufStream.write( contentLengthString.as_bytes() );
+		    	//end the repsonse header with a blank line
+		    	bufStream.write(bytes!("\r\n"));
+			bufStream.flush();
 			bufStream.write( errorLine.as_bytes() );
 			bufStream.flush();
 		}
@@ -110,6 +119,14 @@ pub fn get( request: &Request , bufStream: &mut BufferedStream<TcpStream>) -> bo
 
 fn fileResponse( path: &Path, bufStream: &mut BufferedStream<TcpStream> )
 {
+	//for persistent connections, need to include content-length header
+	let size = fs::stat( path ).size;
+	let contentLengthString = format!("Content-Length: {}\r\n", size); 
+	bufStream.write( contentLengthString.as_bytes() );
+	//end the repsonse header with a blank line
+	bufStream.write(bytes!("\r\n"));
+	bufStream.flush();
+
 	let mut file: File = File::open( path ).unwrap();
 	let mut buf  = vec::from_elem(8129, 0u8);
 	while ( !file.eof() )
