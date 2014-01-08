@@ -1,6 +1,8 @@
 use std::io::buffered::BufferedStream;
 use std::io::net::tcp::TcpStream;
 
+use std::hashmap::HashMap;
+
 use method::Method;
 
 pub struct Request
@@ -8,19 +10,9 @@ pub struct Request
 	method: Method,
 	uri: ~str,
 	queryString: ~str,
-	headers: Headers
+	headers: HashMap<~str, ~str>
 }
 
-pub struct Headers
-{
-	headers: ~[Header]
-}
-
-pub struct Header
-{
-	key: ~str,
-	value: ~str
-}
 
 impl Request
 {
@@ -44,18 +36,19 @@ impl Request
 		}
 		
 		//read all remaining lines of the header
-		let mut headersVector: ~[Header] = ~[];
+		let mut headers = HashMap::<~str, ~str>::new();
 		loop
 		{
 			let line = bufStream.read_line().unwrap();
 			if (line == "\r\n".to_str()) { break; } //a blank (\r\n) line means the end of the request
 
-			let mut lineIter = line.split(' ');
+			let mut lineIter = line.split_str(": ");
 			let key = lineIter.next().unwrap().to_str();
-			let value = lineIter.next().unwrap().to_str();
-			headersVector.push( Header { key: key, value: value } );
+			let tempvalue = lineIter.next().unwrap();
+			let length = tempvalue.len();
+			let value = tempvalue.as_slice().slice_to( length - 2 ).to_owned();
+			headers.insert( key, value );
 		}
-		let headers = Headers { headers: headersVector };
 		
 		//build the request from gathered parts
 		let request = Request { 

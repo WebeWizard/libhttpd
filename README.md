@@ -1,3 +1,7 @@
+Currently being worked on:
+	Support for the Connection: keep-alive header.  Which is basically the defining feature of http 1.1 compared to previous versions.
+
+
 Example of how to make the server, and add contexts to it
 
 ```Rust
