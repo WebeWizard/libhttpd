@@ -2,6 +2,7 @@ use std::os;
 use std::vec;
 use std::str;
 
+use headers::Headers;
 use status::Status;
 use request::Request;
 
@@ -86,32 +87,12 @@ pub fn get( request: &Request , bufStream: &mut BufferedStream<TcpStream>) -> bo
 			}
 			else
 			{
-				let dirContents = fs::readdir(&path);
-				let mut dirContentsResponse = ~"";
-				for entry in dirContents.iter()
-				{
-					dirContentsResponse = dirContentsResponse + str::from_utf8( entry.filename().unwrap() ) + "\r\n";
-		    		}
-		    		let dirContentsBytes = dirContentsResponse.as_bytes();
-		    		let contentLengthString = format!( "Content-Length: {}\r\n", dirContentsBytes.len() );
-		    		bufStream.write( contentLengthString.as_bytes() );
-		    		//end the repsonse header with a blank line
-				bufStream.write(bytes!("\r\n"));
-				bufStream.flush();
-		    		bufStream.write( dirContentsBytes );
-		    		bufStream.flush();
+				dirResponse( &path, bufStream );
 		    	}
 		},
 		ERROR =>
 		{
-			let errorLine: ~str = format!( "ERROR: {:s} , {:s} ", status.statusCode, status.reason);
-			let contentLengthString = format!( "Content-Length: {}\r\n", errorLine.len() );
-		    	bufStream.write( contentLengthString.as_bytes() );
-		    	//end the repsonse header with a blank line
-		    	bufStream.write(bytes!("\r\n"));
-			bufStream.flush();
-			bufStream.write( errorLine.as_bytes() );
-			bufStream.flush();
+			errorResponse( &status, bufStream );
 		}
 	}
 	return true;
@@ -119,9 +100,11 @@ pub fn get( request: &Request , bufStream: &mut BufferedStream<TcpStream>) -> bo
 
 fn fileResponse( path: &Path, bufStream: &mut BufferedStream<TcpStream> )
 {
+	
+	let dateString = Headers::getDateHeader();
+	bufStream.write( dateString.as_bytes() );
 	//for persistent connections, need to include content-length header
-	let size = fs::stat( path ).size;
-	let contentLengthString = format!("Content-Length: {}\r\n", size); 
+	let contentLengthString = Headers::getContentLengthHeader( path );
 	bufStream.write( contentLengthString.as_bytes() );
 	//end the repsonse header with a blank line
 	bufStream.write(bytes!("\r\n"));
@@ -141,4 +124,38 @@ fn fileResponse( path: &Path, bufStream: &mut BufferedStream<TcpStream> )
 			None => { break; }
 		}
 	}
+}
+
+fn dirResponse ( path: &Path, bufStream: &mut BufferedStream<TcpStream> )
+{
+	let dirContents = fs::readdir( path );
+	let mut dirContentsResponse = ~"";
+	for entry in dirContents.iter()
+	{
+		dirContentsResponse = dirContentsResponse + str::from_utf8( entry.filename().unwrap() ) + "\r\n";
+	}
+	let dirContentsBytes = dirContentsResponse.as_bytes();
+	let dateString = Headers::getDateHeader();
+	bufStream.write( dateString.as_bytes() );
+	let contentLengthString = format!( "Content-Length: {}\r\n", dirContentsBytes.len() );
+	bufStream.write( contentLengthString.as_bytes() );
+	//end the repsonse header with a blank line
+	bufStream.write(bytes!("\r\n"));
+	bufStream.flush();
+	bufStream.write( dirContentsBytes );
+	bufStream.flush();
+}
+
+fn errorResponse ( status: &Status, bufStream: &mut BufferedStream<TcpStream> )
+{
+	let dateString = Headers::getDateHeader();
+	bufStream.write( dateString.as_bytes() );
+	let errorLine: ~str = format!( "ERROR: {:s} , {:s} ", status.statusCode, status.reason);
+	let contentLengthString = format!( "Content-Length: {}\r\n", errorLine.len() );
+    	bufStream.write( contentLengthString.as_bytes() );
+    	//end the repsonse header with a blank line
+    	bufStream.write(bytes!("\r\n"));
+	bufStream.flush();
+	bufStream.write( errorLine.as_bytes() );
+	bufStream.flush();
 }

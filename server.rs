@@ -58,11 +58,8 @@ impl Server
 	//Begins the server's loop of listening for connections, building a request, and responding
 	pub fn start(self) -> bool
 	{
-		//static bindAddress: &'static str = "127.0.0.1";
-		//static bindPort: uint = 9123;
 
 		let mut tcpAcceptor = TcpListener::bind( SocketAddr { ip: self.ip , port: self.port } ).listen().unwrap();
-		//println( format!("Server is listening on IP: {:s} , Port: {:u}", bindAddress, bindPort) );
 
 		println("listener is ready");
 		

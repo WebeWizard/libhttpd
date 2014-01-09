@@ -4,6 +4,7 @@
 extern mod std;
 extern mod extra;
 
+pub mod headers;
 pub mod server;
 pub mod context;
 pub mod request;
