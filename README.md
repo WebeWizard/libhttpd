@@ -1,5 +1,5 @@
 Currently being worked on:
-	Support for the Connection: keep-alive header.  Which is basically the defining feature of http 1.1 compared to previous versions.
+	Move responses to a structure/build/send model.  It's a library after all, not a standalone server. We shouldn't expect users to have to build contextual responses by hand to meet the http 1.1 standard.  This way, we can have functions like 'sendFileAsMessage( myfile )' and the library will send it with all the necessary headers / encodings.
 
 
 Example of how to make the server, and add contexts to it

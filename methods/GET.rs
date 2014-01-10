@@ -6,18 +6,17 @@ use headers::Headers;
 use status::Status;
 use request::Request;
 
+use response::Response;
+use response::ResponseType;
+use response::{FILE, DIR, ERROR};
+
 use std::io::buffered::BufferedStream;
 use std::io::net::tcp::TcpStream;
 
+use std::hashmap::HashMap;
+
 use std::io::{File, fs};
 
-pub enum ResponseType
-{
-	FILE,
-	DIR,
-	ERROR
-}
-	
 //validate:	validates the request from the uri and headers 
 //		and determines how the server should respond by returning a Status struct.
 //TODO:		how about the server only serving files from something like a 'www' directory?
@@ -52,6 +51,20 @@ pub fn validate( request: &Request ) -> ( Status, ResponseType )
 	}
 }
 
+
+pub fn buildGetResponse( request: &Request ) -> Response
+{
+	let workingPath = os::self_exe_path().unwrap();
+	let workingStr = workingPath.as_str().unwrap();
+	let path = Path::new( workingStr + request.uri );
+
+	//see what the uri is pointing to and determine if it is gettable.
+	let ( status, responseType ) = validate( request );
+	
+	let response: Response = Response { status: status, responseType: responseType, headers: HashMap::<~str,~str>::new() };
+	return response;
+	
+}
 //get:	fetches the data requested by the Request and sends it over the Request's bufStream.
 pub fn get( request: &Request , bufStream: &mut BufferedStream<TcpStream>) -> bool
 {
