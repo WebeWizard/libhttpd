@@ -18,7 +18,7 @@ pub struct Response
 {
 	status: Status,
 	responseType: ResponseType,
-	headers: HashMap<~str, ~str>
+	headers: HashMap<~str, ~str>,
 }
 
 	

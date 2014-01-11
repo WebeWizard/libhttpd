@@ -1,4 +1,7 @@
 use std::io::fs;
+use std::hashmap::HashMap;
+use std::io::buffered::BufferedStream;
+use std::io::net::tcp::TcpStream;
 
 use extra::time;
 use extra::time::Tm;
@@ -21,6 +24,15 @@ impl Headers
 	{
 		let size = fs::stat( path ).size;
 		return format!( "Content-Length: {}\r\n", size) ; 
+	}
+	
+	pub fn writeToStream( headers: &HashMap<~str,~str> , bufStream: &mut BufferedStream<TcpStream> )
+	{
+		for ( key, value ) in headers.iter()
+		{
+			let headerStr = format!( "{}: {}\r\n" , key.to_owned(), value.to_owned() );
+			bufStream.write( headerStr.as_bytes() );
+		}
 	}
 }
 

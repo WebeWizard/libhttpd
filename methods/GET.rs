@@ -45,6 +45,7 @@ pub fn validate( request: &Request ) -> ( Status, ResponseType )
 	
 	else
 	{
+		//TODO: Build this more to include different types of errors (Unauthorized, Gone, Request-URI Too Large(?) etc)
 		status.statusCode = ~"404";
 		status.reason = ~"Not Found";
 		return ( status, ERROR );
@@ -54,75 +55,109 @@ pub fn validate( request: &Request ) -> ( Status, ResponseType )
 
 pub fn buildGetResponse( request: &Request ) -> Response
 {
+	let mut headers = HashMap::<~str,~str>::new();
+	//see what the uri is pointing to and determine if it is gettable.
+	let ( status, responseType ) = validate( request );
+	//decide what transfer encoding we want to use
+	match responseType
+	{
+		FILE => 
+		{
+			if ( false ) //if none of these rules match, don't enter any header, and we'll use Identity encoding as a last resort
+			{
+				headers.insert( ~"Transfer-Encoding" , ~"chunked" );
+			} 
+			else
+			{
+				let workingPath = os::self_exe_path().unwrap();
+				let workingStr = workingPath.as_str().unwrap();
+				let path = Path::new( workingStr + request.uri );
+				let size = fs::stat( &path ).size;
+				headers.insert( ~"Content-Length", size.to_str() );
+			}
+		},
+		DIR =>
+		{
+			let workingPath = os::self_exe_path().unwrap();
+			let workingStr = workingPath.as_str().unwrap();
+			let indexPath: Path = Path::new( workingStr + request.uri + "index.html");
+			if ( indexPath.is_file() )
+			{
+				let size = fs::stat( &indexPath ).size;
+				headers.insert( ~"Content-Length", size.to_str() );
+			}
+			else
+			{
+				//In the future, we'll use chunked for this, because we never know what's in a directory ahead of time
+				headers.insert( ~"Transfer-Encoding" , ~"chunked" );
+			}
+			//In the future, we'll use chunked for this, because we never know what's in a directory ahead of time
+			
+		},
+		ERROR =>
+		{
+			//for now, let's always use identiy for this, until we know better anyways
+		}
+	}
+
+	
+	let response: Response = Response { status: status, responseType: responseType, headers: headers };
+	return response;
+}
+
+pub fn sendGetResponse( request: &Request, response: &Response, bufStream: &mut BufferedStream<TcpStream> )
+{
+	//write status line
+	let statusLine: ~str = format!( "HTTP/1.1 {:s} {:s}\r\n", response.status.statusCode, response.status.reason );
+	bufStream.write( statusLine.as_bytes() );
+	//write headers ( should also do sanity checks, so we don't send content lengths with chunked encoding )
+	Headers::writeToStream( &response.headers , bufStream);
+	bufStream.write( "\r\n".as_bytes() ); //end headers with an empty line
+	bufStream.flush();
+	
+	//write message
 	let workingPath = os::self_exe_path().unwrap();
 	let workingStr = workingPath.as_str().unwrap();
 	let path = Path::new( workingStr + request.uri );
+	match response.responseType
+	{
+		FILE => 
+		{
+			fileIdentityResponse( &path, bufStream );
+		},
+		DIR =>
+		{
+			let indexPath: Path = Path::new( workingStr + request.uri + "index.html");
+			if ( indexPath.is_file() )
+			{
+				fileIdentityResponse( &indexPath, bufStream );
+			}
+			else
+			{
+				//In the future, we'll use chunked for this, because we never know what's in a directory ahead of time
+				dirChunkedResponse( &path, bufStream );
+			}
+		},
+		ERROR =>
+		{
+			errorIdentityResponse( &response.status, bufStream );
+		}
+	}
 
-	//see what the uri is pointing to and determine if it is gettable.
-	let ( status, responseType ) = validate( request );
-	
-	let response: Response = Response { status: status, responseType: responseType, headers: HashMap::<~str,~str>::new() };
-	return response;
-	
+	//if headers contains a Trailers field, then send trailers
+	//flush
 }
 //get:	fetches the data requested by the Request and sends it over the Request's bufStream.
 pub fn get( request: &Request , bufStream: &mut BufferedStream<TcpStream>) -> bool
 {
-	let workingPath = os::self_exe_path().unwrap();
-	let workingStr = workingPath.as_str().unwrap();
-	let path = Path::new( workingStr + request.uri );
-
-	//see what the uri is pointing to and determine if it is gettable.
-	let ( status, responseType ) = validate( request );
-	
-	//send status line
-	let statusLine: ~str = format!( "HTTP/1.1 {:s} {:s}\r\n", status.statusCode, status.reason );
-	bufStream.write( statusLine.as_bytes() );
-	bufStream.flush();
-
-	
-	
-	//send the message
-	match responseType
-	{
-		//TODO: Move these responses into their own functions
-		FILE => 
-		{
-			fileResponse( &path, bufStream );
-		},
-		DIR =>
-		{
-			//TODO: Check to see if an index.html file exists, if so, validate and send it instead of dir contentes
-			let indexPath: Path = Path::new( workingStr + request.uri + "index.html");
-			if ( indexPath.is_file() )
-			{
-				fileResponse( &indexPath, bufStream);
-			}
-			else
-			{
-				dirResponse( &path, bufStream );
-		    	}
-		},
-		ERROR =>
-		{
-			errorResponse( &status, bufStream );
-		}
-	}
+	let response: Response = buildGetResponse( request );
+	sendGetResponse( request, &response, bufStream );
 	return true;
 }
 
-fn fileResponse( path: &Path, bufStream: &mut BufferedStream<TcpStream> )
+fn fileIdentityResponse( path: &Path, bufStream: &mut BufferedStream<TcpStream> )
 {
-	
-	let dateString = Headers::getDateHeader();
-	bufStream.write( dateString.as_bytes() );
-	//for persistent connections, need to include content-length header
-	let contentLengthString = Headers::getContentLengthHeader( path );
-	bufStream.write( contentLengthString.as_bytes() );
-	//end the repsonse header with a blank line
-	bufStream.write(bytes!("\r\n"));
-	bufStream.flush();
-
+	//IDENTITY ENCODING
 	let mut file: File = File::open( path ).unwrap();
 	let mut buf  = vec::from_elem(8129, 0u8);
 	while ( !file.eof() )
@@ -139,27 +174,24 @@ fn fileResponse( path: &Path, bufStream: &mut BufferedStream<TcpStream> )
 	}
 }
 
-fn dirResponse ( path: &Path, bufStream: &mut BufferedStream<TcpStream> )
+fn dirChunkedResponse ( path: &Path, bufStream: &mut BufferedStream<TcpStream> )
 {
 	let dirContents = fs::readdir( path );
-	let mut dirContentsResponse = ~"";
 	for entry in dirContents.iter()
 	{
-		dirContentsResponse = dirContentsResponse + str::from_utf8( entry.filename().unwrap() ) + "\r\n";
+		let entryStr = str::from_utf8( entry.filename().unwrap() ) + "\r\n"; //NOT including ending CRLF
+		let hexSizeStr = entryStr.as_bytes().len().to_str_radix(16);
+		let sizeStr = hexSizeStr + "\r\n"; //INCLUDING ending CRLF
+		bufStream.write( sizeStr.as_bytes() );
+		bufStream.write( entryStr.as_bytes() );
+		bufStream.write( "\r\n".as_bytes() );
+		bufStream.flush();
 	}
-	let dirContentsBytes = dirContentsResponse.as_bytes();
-	let dateString = Headers::getDateHeader();
-	bufStream.write( dateString.as_bytes() );
-	let contentLengthString = format!( "Content-Length: {}\r\n", dirContentsBytes.len() );
-	bufStream.write( contentLengthString.as_bytes() );
-	//end the repsonse header with a blank line
-	bufStream.write(bytes!("\r\n"));
-	bufStream.flush();
-	bufStream.write( dirContentsBytes );
-	bufStream.flush();
+	bufStream.write( "0\r\n\r\n".as_bytes() ); //end the chunked data
+	bufStream.flush(); 
 }
 
-fn errorResponse ( status: &Status, bufStream: &mut BufferedStream<TcpStream> )
+fn errorIdentityResponse ( status: &Status, bufStream: &mut BufferedStream<TcpStream> )
 {
 	let dateString = Headers::getDateHeader();
 	bufStream.write( dateString.as_bytes() );
