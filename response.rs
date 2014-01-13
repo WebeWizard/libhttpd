@@ -32,7 +32,7 @@ pub fn respond( request: &Request , bufStream: &mut BufferedStream<TcpStream> ) 
                 CONNECT =>
                 {
                         //NOT IMPLEMENTED YET
-                        println("CONNECT is not implemented yet");
+                        println!("CONNECT is not implemented yet");
                         successFlag = false;
                 },
                 DELETE =>

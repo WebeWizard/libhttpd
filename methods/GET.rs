@@ -63,6 +63,7 @@ pub fn buildGetResponse( request: &Request ) -> Response
 	{
 		FILE => 
 		{
+			
 			if ( false ) //if none of these rules match, don't enter any header, and we'll use Identity encoding as a last resort
 			{
 				headers.insert( ~"Transfer-Encoding" , ~"chunked" );
@@ -88,7 +89,7 @@ pub fn buildGetResponse( request: &Request ) -> Response
 			}
 			else
 			{
-				//In the future, we'll use chunked for this, because we never know what's in a directory ahead of time
+				//we used chunked for this because we never know what's in a directory ahead of time
 				headers.insert( ~"Transfer-Encoding" , ~"chunked" );
 			}
 			//In the future, we'll use chunked for this, because we never know what's in a directory ahead of time
@@ -147,7 +148,7 @@ pub fn sendGetResponse( request: &Request, response: &Response, bufStream: &mut 
 	//if headers contains a Trailers field, then send trailers
 	//flush
 }
-//get:	fetches the data requested by the Request and sends it over the Request's bufStream.
+//get:	fetches the data requested by the Request, builds a response, and sends it over the Request's bufStream.
 pub fn get( request: &Request , bufStream: &mut BufferedStream<TcpStream>) -> bool
 {
 	let response: Response = buildGetResponse( request );
@@ -157,7 +158,7 @@ pub fn get( request: &Request , bufStream: &mut BufferedStream<TcpStream>) -> bo
 
 fn fileIdentityResponse( path: &Path, bufStream: &mut BufferedStream<TcpStream> )
 {
-	//IDENTITY ENCODING
+	//IDENTITY ENCODING FOR FILES ( send the file as is with Content-Length in header
 	let mut file: File = File::open( path ).unwrap();
 	let mut buf  = vec::from_elem(8129, 0u8);
 	while ( !file.eof() )
@@ -174,8 +175,34 @@ fn fileIdentityResponse( path: &Path, bufStream: &mut BufferedStream<TcpStream> 
 	}
 }
 
+fn fileChunkedResponse ( path: &Path, bufStream: &mut BufferedStream<TcpStream> )
+{
+	//CHUNKED ENCODING for sending files, this should be the last of the last resort methods for sending files
+	let mut file: File = File::open( path ).unwrap();
+	let mut buf = vec::from_elem(8129, 0u8);
+	while ( !file.eof() )
+	{
+		match file.read(buf)
+		{
+			Some(length) =>
+			{
+				let hexSizeStr = length.to_str_radix(16);
+				let sizeStr = hexSizeStr + "\r\n"; //INCLUDING ending CRLF
+				bufStream.write( sizeStr.as_bytes() );
+				bufStream.write( buf.mut_slice( 0, length) );
+				bufStream.write( "\r\n".as_bytes() );
+				bufStream.flush();
+			},
+			None => { break; }
+		}
+	}
+	bufStream.write( "0\r\n\r\n".as_bytes() ); //end the chunked data
+	bufStream.flush(); 
+}
+
 fn dirChunkedResponse ( path: &Path, bufStream: &mut BufferedStream<TcpStream> )
 {
+	//CHUNKED ENCODING for directory listing ( Each chunk contains a hex length of chunk message, followed by CRLF, followed by chunk message, followed by CRLF )
 	let dirContents = fs::readdir( path );
 	for entry in dirContents.iter()
 	{

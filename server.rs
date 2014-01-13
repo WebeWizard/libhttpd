@@ -61,7 +61,7 @@ impl Server
 
 		let mut tcpAcceptor = TcpListener::bind( SocketAddr { ip: self.ip , port: self.port } ).listen().unwrap();
 
-		println("listener is ready");
+		println!("listener is ready");
 		
 		let contextMap_arc = Arc::new( self.contextMap );
 
