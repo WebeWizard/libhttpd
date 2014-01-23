@@ -1,6 +1,6 @@
 use std::io::fs;
 use std::hashmap::HashMap;
-use std::io::buffered::BufferedStream;
+use std::io::BufferedStream;
 use std::io::net::tcp::TcpStream;
 
 use extra::time;

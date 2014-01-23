@@ -1,7 +1,7 @@
 use std::io::net::ip::{IpAddr, SocketAddr, Ipv4Addr};
 use std::io::{Listener, Acceptor};
 use std::io::net::tcp::TcpListener;
-use std::io::buffered::BufferedStream;
+use std::io::BufferedStream;
 use std::hashmap::HashMap;
 
 use extra::arc::Arc;

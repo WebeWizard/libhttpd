@@ -1,4 +1,4 @@
-use std::io::buffered::BufferedStream;
+use std::io::BufferedStream;
 use std::io::net::tcp::TcpStream;
 use std::hashmap::HashMap;
 

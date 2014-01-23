@@ -10,7 +10,7 @@ use response::Response;
 use response::ResponseType;
 use response::{FILE, DIR, ERROR};
 
-use std::io::buffered::BufferedStream;
+use std::io::BufferedStream;
 use std::io::net::tcp::TcpStream;
 
 use std::hashmap::HashMap;
@@ -206,7 +206,7 @@ fn dirChunkedResponse ( path: &Path, bufStream: &mut BufferedStream<TcpStream> )
 	let dirContents = fs::readdir( path );
 	for entry in dirContents.iter()
 	{
-		let entryStr = str::from_utf8( entry.filename().unwrap() ) + "\r\n"; //NOT including ending CRLF
+		let entryStr = str::from_utf8( entry.filename().unwrap() ).unwrap() + "\r\n"; //NOT including ending CRLF
 		let hexSizeStr = entryStr.as_bytes().len().to_str_radix(16);
 		let sizeStr = hexSizeStr + "\r\n"; //INCLUDING ending CRLF
 		bufStream.write( sizeStr.as_bytes() );
