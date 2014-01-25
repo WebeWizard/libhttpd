@@ -156,7 +156,7 @@ pub fn get( request: &Request , bufStream: &mut BufferedStream<TcpStream>) -> bo
 	return true;
 }
 
-fn fileIdentityResponse( path: &Path, bufStream: &mut BufferedStream<TcpStream> )
+pub fn fileIdentityResponse( path: &Path, bufStream: &mut BufferedStream<TcpStream> )
 {
 	//IDENTITY ENCODING FOR FILES ( send the file as is with Content-Length in header
 	let mut file: File = File::open( path ).unwrap();
@@ -175,7 +175,7 @@ fn fileIdentityResponse( path: &Path, bufStream: &mut BufferedStream<TcpStream> 
 	}
 }
 
-fn fileChunkedResponse ( path: &Path, bufStream: &mut BufferedStream<TcpStream> )
+pub fn fileChunkedResponse( path: &Path, bufStream: &mut BufferedStream<TcpStream> )
 {
 	//CHUNKED ENCODING for sending files, this should be the last of the last resort methods for sending files
 	let mut file: File = File::open( path ).unwrap();
@@ -200,7 +200,7 @@ fn fileChunkedResponse ( path: &Path, bufStream: &mut BufferedStream<TcpStream> 
 	bufStream.flush(); 
 }
 
-fn dirChunkedResponse ( path: &Path, bufStream: &mut BufferedStream<TcpStream> )
+pub fn dirChunkedResponse ( path: &Path, bufStream: &mut BufferedStream<TcpStream> )
 {
 	//CHUNKED ENCODING for directory listing ( Each chunk contains a hex length of chunk message, followed by CRLF, followed by chunk message, followed by CRLF )
 	let dirContents = fs::readdir( path );
@@ -218,7 +218,7 @@ fn dirChunkedResponse ( path: &Path, bufStream: &mut BufferedStream<TcpStream> )
 	bufStream.flush(); 
 }
 
-fn errorIdentityResponse ( status: &Status, bufStream: &mut BufferedStream<TcpStream> )
+pub fn errorIdentityResponse ( status: &Status, bufStream: &mut BufferedStream<TcpStream> )
 {
 	let dateString = Headers::getDateHeader();
 	bufStream.write( dateString.as_bytes() );

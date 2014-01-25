@@ -1,6 +1,8 @@
 #[crate_type = "lib"];
 #[crate_id = "httpd#0.1"];
 
+#[allow(unnecessary_parens)];
+
 extern mod std;
 extern mod extra;
 

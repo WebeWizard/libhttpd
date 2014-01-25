@@ -104,7 +104,7 @@ impl Server
 							} else { break; }
 						}
 						//finally. perform the action of the deepest context
-						(currentContext.action)();
+						(currentContext.action)( &tcpRequest, &mut bufStream);
 					} else {
 						//if uri didn't match any context, perform the normal web server response
 						response::respond( &tcpRequest, &mut bufStream );
