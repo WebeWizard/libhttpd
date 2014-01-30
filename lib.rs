@@ -1,5 +1,5 @@
-#[crate_type = "lib"];
 #[crate_id = "httpd#0.1"];
+#[crate_type="lib"];
 
 #[allow(unnecessary_parens)];
 

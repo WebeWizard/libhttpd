@@ -69,7 +69,8 @@ impl Server
 			let (port,chan) = Chan::new();
 			chan.send( contextMap_arc.clone() );
 			let stream = tcpAcceptor.accept().unwrap();
-			do spawn {
+			spawn( proc()
+			{
 				let localArc: Arc<HashMap<~str, Context>> = port.recv();
 				let contextMap = localArc.get();
 				let tcpStream = stream;
@@ -110,7 +111,7 @@ impl Server
 						response::respond( &tcpRequest, &mut bufStream );
 					}
 				}
-			}
+			});
 		}
 	}	
 }
