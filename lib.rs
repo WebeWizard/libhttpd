@@ -5,6 +5,7 @@
 
 extern mod std;
 extern mod extra;
+extern mod sync;
 
 pub mod headers;
 pub mod server;

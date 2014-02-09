@@ -22,7 +22,7 @@ impl Headers
 	//Response Headers - http://www.w3.org/Protocols/rfc2616/rfc2616-sec6.html#sec6.2
 	pub fn getContentLengthHeader( path: &Path ) -> ~str
 	{
-		let size = fs::stat( path ).size;
+		let size = fs::stat( path ).unwrap().size;
 		return format!( "Content-Length: {}\r\n", size) ; 
 	}
 	

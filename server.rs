@@ -4,7 +4,7 @@ use std::io::net::tcp::TcpListener;
 use std::io::BufferedStream;
 use std::hashmap::HashMap;
 
-use extra::arc::Arc;
+use sync::Arc;
 
 use context::Context;
 

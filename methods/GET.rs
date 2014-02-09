@@ -73,7 +73,7 @@ pub fn buildGetResponse( request: &Request ) -> Response
 				let workingPath = os::self_exe_path().unwrap();
 				let workingStr = workingPath.as_str().unwrap();
 				let path = Path::new( workingStr + request.uri );
-				let size = fs::stat( &path ).size;
+				let size = fs::stat( &path ).unwrap().size;
 				headers.insert( ~"Content-Length", size.to_str() );
 			}
 		},
@@ -84,7 +84,7 @@ pub fn buildGetResponse( request: &Request ) -> Response
 			let indexPath: Path = Path::new( workingStr + request.uri + "index.html");
 			if ( indexPath.is_file() )
 			{
-				let size = fs::stat( &indexPath ).size;
+				let size = fs::stat( &indexPath ).unwrap().size;
 				headers.insert( ~"Content-Length", size.to_str() );
 			}
 			else
@@ -163,7 +163,7 @@ pub fn fileIdentityResponse( path: &Path, bufStream: &mut BufferedStream<TcpStre
 	let mut buf  = vec::from_elem(8129, 0u8);
 	while ( !file.eof() )
 	{
-		match file.read(buf)
+		match file.read(buf).ok()
 		{
 			Some(length) =>
 			{
@@ -182,7 +182,7 @@ pub fn fileChunkedResponse( path: &Path, bufStream: &mut BufferedStream<TcpStrea
 	let mut buf = vec::from_elem(8129, 0u8);
 	while ( !file.eof() )
 	{
-		match file.read(buf)
+		match file.read(buf).ok()
 		{
 			Some(length) =>
 			{
@@ -203,7 +203,7 @@ pub fn fileChunkedResponse( path: &Path, bufStream: &mut BufferedStream<TcpStrea
 pub fn dirChunkedResponse ( path: &Path, bufStream: &mut BufferedStream<TcpStream> )
 {
 	//CHUNKED ENCODING for directory listing ( Each chunk contains a hex length of chunk message, followed by CRLF, followed by chunk message, followed by CRLF )
-	let dirContents = fs::readdir( path );
+	let dirContents = fs::readdir( path ).unwrap();
 	for entry in dirContents.iter()
 	{
 		let entryStr = str::from_utf8( entry.filename().unwrap() ).unwrap() + "\r\n"; //NOT including ending CRLF
