@@ -1,5 +1,5 @@
 Currently being worked on:
-	Move responses to a structure/build/send model.  It's a library after all, not a standalone server. We shouldn't expect users to have to build contextual responses by hand to meet the http 1.1 standard.  This way, we can have functions like 'sendFileAsMessage( myfile )' and the library will send it with all the necessary headers / encodings.
+	Implementing DEFLATE compression.  You really shouldn't use this EVER, as there are many attacks against it. If you do plan on using it, don't use it for authentication or transfering secure data.
 
 
 Example of how to make the server, and add contexts to it
