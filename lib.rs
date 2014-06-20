@@ -1,22 +1,25 @@
-#[crate_id = "httpd#0.1"];
-#[crate_type="lib"];
+#![crate_id = "httpd#0.2"]
+#![crate_type = "lib"]
 
-#[allow(unnecessary_parens)];
+#![allow(unnecessary_parens)]
 
-extern mod std;
-extern mod extra;
-extern mod sync;
+extern crate time;
 
-pub mod headers;
 pub mod server;
-pub mod context;
+pub mod method;
 pub mod request;
 pub mod response;
-pub mod method;
-pub mod requesturi;
 pub mod status;
+pub mod headers;
+pub mod encoder;
 
 pub mod methods
-{ 
+{
 	pub mod GET;
+}
+
+pub mod encoders
+{
+	pub mod identity;
+	pub mod chunked;
 }

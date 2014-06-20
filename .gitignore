@@ -2,3 +2,9 @@
 ###################
 *.so
 *.o
+
+# compiled libraries #
+*.rlib
+
+# compiled programs #
+test

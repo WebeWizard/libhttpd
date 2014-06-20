@@ -1,117 +1,86 @@
-use std::io::net::ip::{IpAddr, SocketAddr, Ipv4Addr};
-use std::io::{Listener, Acceptor};
-use std::io::net::tcp::TcpListener;
+use std::io::TcpListener;
+use std::io::{Acceptor, Listener};
 use std::io::BufferedStream;
-use std::hashmap::HashMap;
-
-use sync::Arc;
-
-use context::Context;
 
 use request::Request;
-use response;
+use response::Response;
 
-pub struct Server
+pub struct Server<'s>
 {
-	ip: IpAddr,
-	port: u16,
-	settings: ~[~str],
-	contextMap: HashMap<~str, Context>
+	ip: &'s str,
+	port: u16
 }
 
-impl Server
-{	
-	//Creates and returns a new Server struct with blank/default settings.
+impl<'s> Server<'s>
+{
 	pub fn new() -> Server
 	{
-		let server: Server = Server {
-			ip: Ipv4Addr( 127,0,0,1 ),
-			port: 9123,
-			settings: ~[],
-			contextMap: HashMap::<~str, Context>::new()
-		};
+		let server: Server = Server { ip: "127.0.0.1", port: 8080 };
 		return server;
 	}
 	
-	pub fn newFromPort( port: u16 ) -> Server
+	pub fn start(&self) -> bool
 	{
-		let server: Server = Server {
-			ip: Ipv4Addr( 127,0,0,1 ),
-			port: port,
-			settings: ~[],
-			contextMap: HashMap::<~str, Context>::new()
-		};
-		return server;
-	}
 	
-	pub fn newFromIpAddr( ip: IpAddr, port: u16 ) -> Server
-	{
-		let server: Server = Server {
-			ip: ip,
-			port: port,
-			settings: ~[],
-			contextMap: HashMap::<~str, Context>::new()
-		};
-		return server;
-	}
+		let listener = TcpListener::bind( self.ip, self.port );
+
+		// bind the listener to the specified address
+		let mut acceptor = listener.listen();
+
 	
-	//Begins the server's loop of listening for connections, building a request, and responding
-	pub fn start(self) -> bool
-	{
-
-		let mut tcpAcceptor = TcpListener::bind( SocketAddr { ip: self.ip , port: self.port } ).listen().unwrap();
-
-		println!("listener is ready");
-		
-		let contextMap_arc = Arc::new( self.contextMap );
-
-		loop {
-			let (port,chan) = Chan::new();
-			chan.send( contextMap_arc.clone() );
-			let stream = tcpAcceptor.accept().unwrap();
-			spawn( proc()
-			{
-				let localArc: Arc<HashMap<~str, Context>> = port.recv();
-				let contextMap = localArc.get();
-				let tcpStream = stream;
-				//wrap the stream in a buffer
-				let mut bufStream = BufferedStream::new( tcpStream );
-				
-				let mut keepAlive = true;
-				while ( keepAlive )
-				{
-					//build tcprequest from the bufStream
-					let tcpRequest: Request = Request::new( &mut bufStream );
+		// accept connections and process them, spawning a new tasks for each one
+		for stream in acceptor.incoming() {
+			match stream {
+				Err(e) => {
+					// CONNECTION FAILED
+					println!("{}", e );
 					
-					if ( tcpRequest.headers.get( &~"Connection" ) == &~"close" )
-					{
-						keepAlive = false;
-					}
-					
-					//search through the contexts and subcontexts to see if the uri matches any
-					let mut uriSplitIter = tcpRequest.uri.split('/');
-					uriSplitIter.next(); //toss the beginning / into the garbage
-					let mut currentKey = uriSplitIter.next().unwrap().to_owned();
-					//iterate over the parts of the uri to find the deepest context
-					if ( contextMap.contains_key( &currentKey ) )
-					{
-						let mut currentContext: &Context = contextMap.get( &currentKey );
-						for key in uriSplitIter
-						{
-							currentKey = key.to_owned();
-							if ( currentContext.subContextMap.contains_key( &currentKey ) )
-							{
-								currentContext = currentContext.subContextMap.get( &currentKey );
-							} else { break; }
-						}
-						//finally. perform the action of the deepest context
-						(currentContext.action)( &tcpRequest, &mut bufStream);
-					} else {
-						//if uri didn't match any context, perform the normal web server response
-						response::respond( &tcpRequest, &mut bufStream );
-					}
 				}
-			});
+				Ok(stream) => spawn(proc() {
+					// CONNECTION SUCCEEDED
+					
+					// buffer the stream
+					let mut bufStream = BufferedStream::new( stream );
+				
+					let mut keepAlive: bool = true;
+					while ( keepAlive )
+					{
+						// Read Request or Catch Read Error
+						let requestOption = Request::new( &mut bufStream );
+						match requestOption
+						{	
+							// Request was successfully read
+							Some(request) => {
+								// Read Connection header for keep-alive
+								if ( request.headers.contains_key(&"Connection".to_string()) )
+								{
+									let value = request.headers.get(&"Connection".to_string());
+									if ( value.as_slice() != "Keep-Alive" ) { keepAlive = false;}
+								}
+								else { keepAlive = false; }
+				
+								// Respond
+								let responseOption = Response::new( &request );
+								match responseOption
+								{
+									// A valid response was created
+									Some(mut response) => {
+										response.respond( &request, &mut bufStream );
+									},
+									// Response creation failed, maybe do some logging?
+									None => {}
+								}
+							},
+							// Read Request failed, connection probably closed
+							None => { break; }
+						}
+					}
+				})
+			}
 		}
-	}	
+		// close the socket server
+		drop(acceptor);
+		
+		return true;
+	}
 }

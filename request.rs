@@ -1,63 +1,63 @@
 use std::io::BufferedStream;
 use std::io::net::tcp::TcpStream;
-
-use std::hashmap::HashMap;
+use std::collections::hashmap::HashMap;
 
 use method::Method;
 
 pub struct Request
 {
-	method: Method,
-	uri: ~str,
-	queryString: ~str,
-	headers: HashMap<~str, ~str>
+	pub method: Method,
+	pub uri: String,
+	pub query: String,
+	pub headers: HashMap< String, String >
 }
-
 
 impl Request
 {
-	pub fn new(bufStream: &mut BufferedStream<TcpStream>) -> Request
+	pub fn new(bufStream: &mut BufferedStream<TcpStream>) -> Option<Request>
 	{
-		//create an iterator to split request line into words (separated by any white space)
-		let requestLine = bufStream.read_line().unwrap();
-		let mut requestIter = requestLine.words();
-		
-		//read what method the client wants to use
-		let method = Method::from_str( requestIter.next().unwrap() );
-		
-		//separate the query string ( ?foo=bar&bar=foo ) from the uri ( /my/foo/bar/dir/ )
-		let requestString = requestIter.next().unwrap().to_owned();
-		let requestParts: ~[&str] = requestString.as_slice().splitn( '?', 1 ).collect();
-		let uri = requestParts[0].to_owned();
-		let mut queryString = ~"";
-		if ( requestParts.capacity() > 1 )
-		{
-			queryString = requestParts[1].to_owned();
-		}
-		
-		//read all remaining lines of the header
-		let mut headers = HashMap::<~str, ~str>::new();
+		//read in the first line.  Split it into Method, URI, and Query
+		let lineTest = bufStream.read_line();
+		if ( lineTest.is_err() ) { return None; }
+		let line = lineTest.unwrap();
+		let lineSlice = line.as_slice();
+		// --- get method
+		let mut requestStringIter = lineSlice.split( ' ' );
+		let method = requestStringIter.next().unwrap();
+		// --- get uri and query
+		let uriQuery = requestStringIter.next().unwrap();
+		let mut uriQueryIter = uriQuery.split( '?' );
+		let uri = uriQueryIter.next().unwrap_or("").into_string();
+		let query = uriQueryIter.next().unwrap_or("").into_string();
+	
+		//read the rest of the headers
+		let mut headers = HashMap::<String,String>::new();
 		loop
 		{
-			let line = bufStream.read_line().unwrap();
-			if (line == "\r\n".to_str()) { break; } //a blank (\r\n) line means the end of the request
-
-			let mut lineIter = line.split_str(": ");
-			let key = lineIter.next().unwrap().to_str();
-			let tempvalue = lineIter.next().unwrap();
-			let length = tempvalue.len();
-			let value = tempvalue.as_slice().slice_to( length - 2 ).to_owned();
-			headers.insert( key, value );
+			let header = bufStream.read_line().unwrap();
+			let mut headerSlice = header.as_slice();
+			// a \r\n by itself signals the end of the headers
+			if ( headerSlice == "\r\n" ) { break; }
+			// if it's an actual header, remove the new line chars
+			headerSlice = headerSlice.slice_to( headerSlice.len()-2 );
+			
+			//get header key and value
+			let mut headerIter = headerSlice.split_str( ": " );
+			let headerKey = headerIter.next().unwrap_or("").into_string();
+			let headerValue = headerIter.next().unwrap_or("").into_string();
+			//insert into headers map
+			//println!("key: {}, value: {}",headerKey,headerValue);
+			headers.insert( headerKey, headerValue );
+			
 		}
-		
-		//build the request from gathered parts
-		let request = Request { 
-			method: method,
+	
+		let newRequest = Request{ 
+			method: Method::from_str( method ),
 			uri: uri,
-			queryString: queryString,
+			query: query,
 			headers: headers
 		};
 		
-		return request;
+		return Some(newRequest);
 	}
 }
