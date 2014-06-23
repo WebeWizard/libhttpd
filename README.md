@@ -1,9 +1,7 @@
 Currently being worked on:
-	Completely re-wrote the library.  It's still following Rust nightly ( 0.11-pre ).
-	Still need to add contexts back, but there have been many improvements, like http keep-alive, and a better base for transfer/content encoding.
-	
-	Re-add directory responses and default index.html to get request.
-	Being worked on now: gzip and deflate encoding.
+	- Contexts should only act on the methods defined in their methods vector.	
+	- Re-add directory responses and default index.html to get request.
+	- gzip and deflate encoding.
 
 
 Compiling:
@@ -16,12 +14,24 @@ Usage:
 
 extern crate httpd;
 
+use std::collections::hashmap::HashMap;
+use std::io::BufferedStream;
+use std::io::net::tcp::TcpStream;
+
 use httpd::server::Server;
+use httpd::request::Request;
+use httpd::context::Context;
+
+fn hello( request: &Request, bufStream: &mut BufferedStream<TcpStream> )
+{
+	println!("hello from a Context");
+}
 
 fn main() {
 
-	//create the default server.  Default port is 9123
-	let server: Server = Server::new();
+	let mut server: Server = Server::new();
+	
+	server.contextMap.insert("test".to_string(), Context{ methods: vec![], subContextMap: HashMap::<String,Context>::new() , action: hello } );
 	
 	server.start();
 }
