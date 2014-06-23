@@ -29,3 +29,21 @@ impl Method
 		}
 	}
 }
+
+impl Clone for Method
+{
+	fn clone( &self ) -> Method
+	{
+		match self
+		{
+			&CONNECT => CONNECT,
+			&DELETE => DELETE,
+			&GET => GET,
+			&HEAD => HEAD,
+			&OPTIONS => OPTIONS,
+			&POST => POST,
+			&PUT => PUT,
+			&TRACE => TRACE
+		}
+	}
+}

@@ -22,7 +22,7 @@ pub struct Response {
 	pub responseType: ResponseType,
 	pub encoder: Encoder,
 	pub headers:  HashMap< String, String >,
-	pub messageSender: fn(  &str, Encoder, &mut BufferedStream<TcpStream> ) -> bool
+	pub messageSender: fn(  &Request, &Response, &mut BufferedStream<TcpStream> ) -> bool
 }
 
 impl Response
@@ -92,7 +92,7 @@ impl Response
 		bufStream.write( "\r\n".as_bytes() );
 		
 		// write the message
-		successFlag = (self.messageSender)( request.uri.as_slice(), self.encoder.clone(), bufStream );
+		successFlag = (self.messageSender)( request, self, bufStream );
 		
 		// flush the stream
 		bufStream.flush();

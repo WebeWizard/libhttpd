@@ -1,9 +1,7 @@
 use std::collections::hashmap::HashMap;
 
 use std::os;
-use std::io::{File, fs};
-use std::io::BufferedStream;
-use std::io::net::tcp::TcpStream;
+use std::io::fs;
 
 use request::Request;
 use response::{Response, ResponseType};
@@ -11,6 +9,7 @@ use response::{FILE,DIR,ERROR};
 use status::Status;
 use encoder::Encoder;
 use encoders::{identity,chunked};
+use sender;
 
 pub fn response( request: &Request ) -> Response
 {
@@ -19,10 +18,9 @@ pub fn response( request: &Request ) -> Response
 	// validate the request, make sure it actually points to something gettable
 	let ( statusCode, responseType ) = validate( request );
 	
-	
 	// build a function for responding with
 	let mut encoder: Encoder = Encoder{ encoders: vec![] };
-	let mut messageSender = nothing;
+	let mut messageSender = sender::nothing_sender;
 	
 	match responseType
 	{
@@ -74,11 +72,16 @@ pub fn response( request: &Request ) -> Response
 			}
 
 			// set the message sender to be file_sender
-			messageSender = file_sender;
+			messageSender = sender::file_sender;
 			
 		},
-		DIR => {},
-		ERROR => {}
+		DIR => {
+			
+		},
+		ERROR => {
+			encoder.encoders.push( identity::identity );
+			messageSender = sender::error_sender;
+		}
 	}
 	
 	//build the Response struct
@@ -108,32 +111,4 @@ pub fn validate( request: &Request ) -> ( u16 , ResponseType )
 	
 	//not a file or a directory, not found or path error
 	return ( 404, ERROR );
-}
-
-fn nothing( uri: &str, encoder: Encoder, bufStream: &mut BufferedStream<TcpStream> ) -> bool {return true;}
-
-fn file_sender( uri: &str, encoder: Encoder, bufStream: &mut BufferedStream<TcpStream> ) -> bool
-{
-	let uri = uri;
-	let workingPath = os::self_exe_path().unwrap();
-	let workingStr = workingPath.as_str().unwrap().to_string();
-	let path = Path::new( workingStr.append( uri ) );
-	let mut file: File = File::open( &path ).unwrap();
-	let mut buf = [0u8, ..8192];
-	let mut bufVec: Vec<u8> = vec![];
-	while ( !file.eof() )
-	{
-		match file.read(buf)
-		{
-			Ok( size ) =>
-			{;
-				bufVec = Vec::from_slice( buf.slice( 0, size ) );
-
-				bufStream.write( encoder.encode( bufVec ).as_slice() );
-				//gzip
-			},
-			Err( error ) => { break; }
-		}
-	}
-	return true;
 }

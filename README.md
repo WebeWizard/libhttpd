@@ -20,6 +20,7 @@ use httpd::server::Server;
 
 fn main() {
 
+	//create the default server.  Default port is 9123
 	let server: Server = Server::new();
 	
 	server.start();
