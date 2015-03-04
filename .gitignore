@@ -1,10 +1,2 @@
-# Compiled source #
-###################
-*.so
-*.o
-
-# compiled libraries #
-*.rlib
-
-# compiled programs #
-test
+/target
+/Cargo.lock
