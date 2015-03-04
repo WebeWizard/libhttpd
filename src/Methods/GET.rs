@@ -47,9 +47,6 @@ fn build_response( request: &Request, encoders: &HashMap<String,Encoder> ) -> Re
 	// Validate the Request to get the Status
 	let status = validate( request );
 	
-	// determine what the response message will be and build a MessageReader
-	//let message = "poop";
-	//let mut messageBody = MessageReader::BufferedBytesReader( BufferedReader::new( message.as_bytes() ) );
 	let uri = request.uri.as_slice();
 	let workingPath = os::self_exe_path().unwrap();
 	let mut workingStr = workingPath.as_str().unwrap().to_string();

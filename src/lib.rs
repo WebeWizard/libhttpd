@@ -20,7 +20,7 @@ pub mod Methods
 pub mod Encoders
 {
 	pub mod chunked;
-	//pub mod deflate;
+	pub mod deflate;
 	pub mod gzip;
 }
 

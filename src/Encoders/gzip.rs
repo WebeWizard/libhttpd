@@ -38,7 +38,7 @@ impl Read for test {
 pub fn encode ( rx: Receiver<Vec<u8>>, newtx: Sender<Vec<u8>> )
 {
 
-	println!("gzip");
+	// Gzip encoding using flate2 library
 	let mut test = test { rx: rx };
 	let mut gz = GzEncoder::new( test, Compression::Default );
 	const bufSize: usize = 8192;

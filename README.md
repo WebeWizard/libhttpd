@@ -5,6 +5,7 @@ A convenient library for embedding http servers into Rust projects.
 * keep-alive
 * 'get' response
 * gzip content encoding
+* deflate content encoding
 * chunked transfer encoding
 
 

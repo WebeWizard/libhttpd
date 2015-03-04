@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 use encoder::Encoder;
 use Encoders::gzip::gzip;
+use Encoders::deflate::deflate;
 use Encoders::chunked::chunked;
 use method::Method;
 use Methods::GET::GET;
@@ -33,8 +34,8 @@ impl Server {
 		// build a map of Encoders that we want available on the server
 		let mut encoders= HashMap::<String,Encoder>::new();
 		encoders.insert("gzip".to_string() , gzip );
+		encoders.insert("deflate".to_string() , deflate );
 		encoders.insert("chunked".to_string() , chunked ); // chunked is necessary to support 'keep-alive'
-		//encoders.insert("deflate".to_string() , deflate ); // TODO: This is broken, find another deflate library
 		let mut encoders_arc = Arc::new( encoders );
 		
 		// construct the server

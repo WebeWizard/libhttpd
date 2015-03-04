@@ -43,7 +43,6 @@ impl Response {
 				if ( requestedEncoder != "chunked" && encoders.contains_key( &requestedEncoder.to_string() ) ) {
 					// for now assume we only want to use one type of encoding at a time
 					selected_encoders.push( encoders.get( &requestedEncoder.to_string() ).unwrap().clone() );
-					break;
 				}
 			}
 			// if any transfer encodings are used, the last encoding must be chunked
