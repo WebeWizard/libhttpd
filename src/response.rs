@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::old_io::net::tcp::TcpStream;
 use std::old_io::BufferedStream;
-use std::old_io::{BufferedReader, File};
 use std::sync::mpsc::channel;
 use std::sync::mpsc::{Sender,Receiver};
 use std::thread;
@@ -10,7 +9,6 @@ use request::Request;
 use status::Status;
 use method::Method;
 use encoder::Encoder;
-use Encoders::chunked::chunked;
 
 use headers;
 
@@ -22,9 +20,9 @@ pub struct Response {
 
 impl Response {
 	//TODO: this should return a result, not an option, because method not found is valid result
-	pub fn new( request: &Request, methods: &HashMap<String,Method>, encoders: &HashMap<String,Encoder> ) -> Option<Response> {
+	pub fn new( request: &Request, methods: &HashMap<String,Method> ) -> Option<Response> {
 		match methods.get( &request.method ) {
-			Some(method) => Some( (method.build_response)( request, encoders ) ),
+			Some(method) => Some( (method.build_response)( request ) ),
 			None => return None
 		}
 	}
@@ -33,13 +31,17 @@ impl Response {
 	pub fn respond( &mut self, request: &Request, encoders: &HashMap<String,Encoder> , bufStream: &mut BufferedStream<TcpStream> ) -> bool {
 		// write the status line
 		let statusLine = format!( "HTTP/1.1 {} {}\r\n", self.status.code, self.status.reason );
-		bufStream.write( statusLine.as_bytes() );
+		let result = bufStream.write_all( statusLine.as_bytes() );
+		match result {
+			Ok(()) => {},
+			Err(error) => { println!("Stream write error: {}", error); }
+		}
 		
 		// decide what transfer-encodings to apply (these headers are independent of the Response Method)
 		let mut selected_encoders = Vec::<Encoder>::new();
 		if ( request.headers.contains_key( &"Accept-Encoding".to_string() ) ) {
 			let requested_encodings = request.headers.get( &"Accept-Encoding".to_string() ).unwrap();
-			for requestedEncoder in requested_encodings.split_str(", ") {
+			for requestedEncoder in requested_encodings.split(", ") {
 				if ( requestedEncoder != "chunked" && encoders.contains_key( &requestedEncoder.to_string() ) ) {
 					// for now assume we only want to use one type of encoding at a time
 					selected_encoders.push( encoders.get( &requestedEncoder.to_string() ).unwrap().clone() );
@@ -93,7 +95,11 @@ impl Response {
 		headers::write_to_stream( &self.headers , bufStream );
 		
 		// end the headers
-		bufStream.write( "\r\n".as_bytes() );
+		let result = bufStream.write_all( "\r\n".as_bytes() );
+		match result {
+			Ok(()) => {},
+			Err(error) => { println!("Stream write error: {}", error); }
+		}
 		
 		// prepare encoder threads
 		let ( tx , rx ): ( Sender<Vec<u8>> , Receiver<Vec<u8>> ) = channel();
@@ -104,23 +110,25 @@ impl Response {
 		}
 		
 		// write the message
-		const bufSize: usize = 8192;
-		let mut buf = [0u8; bufSize];
+		const BUF_SIZE: usize = 8192;
+		let mut buf = [0u8; BUF_SIZE];
 		
-		let mut size = bufSize;
+		let mut size = BUF_SIZE;
 		
-		while ( size == bufSize ) {
+		while ( size == BUF_SIZE ) {
 			// clear the bufVec from the previous iteration
 			let mut bufVec: Vec<u8> = vec![];
 			// fill the buffer with new data
 			match ( self.messageBody.read( &mut buf ) ) {
 				Ok(readSize) => {
 					// fill the bufVec with new data from buffer
-					bufVec.push_all( buf.slice( 0 , readSize) );
+					bufVec.push_all( &buf[..readSize] );
 					// send this piece of the message off to be encoded
-					tx.send( bufVec );
-					// this blocks the main thread while each peice is being encoded
-					// this could hinder performance, maybe use a separate thread to recv and send over bufstream? Or use a separate thread to read from messageBody and send to encoders
+					let result = tx.send( bufVec );
+					match result {
+						Ok(()) => {},
+						Err(error) => { println!("Encoders sender error: {}", error); }
+					}
 					
 					size = readSize;
 				},
@@ -128,19 +136,31 @@ impl Response {
 			}
 		}
 		println!("done sending");
-		tx.send( Vec::<u8>::new() );
+		let result = tx.send( Vec::<u8>::new() );
+		match result {
+			Ok(()) => {},
+			Err(error) => { println!("Encoders sender error: {}", error); }
+		}
 		drop(tx);
 		
-		let mut recvIter = newrx.iter();
+		let recvIter = newrx.iter();
 		for encoded in recvIter {
-			bufStream.write( encoded.as_slice() );
+			let result = bufStream.write_all( encoded.as_slice() );
+			match result {
+				Ok(()) => {},
+				Err(error) => { println!("Stream write error: {}", error); }
+			}
 		}
 		
 				
 		// if there was a transfer encoding, then the last method is chunked
 		// send the ending chunk and ending line
 		if ( !selected_encoders.is_empty() ) {
-			bufStream.write( "0\r\n\r\n".as_bytes() );
+			let result = bufStream.write_all( "0\r\n\r\n".as_bytes() );
+			match result {
+				Ok(()) => {},
+				Err(error) => { println!("Stream write error: {}", error); }
+			}
 		}
 
 		// TODO: this is very poorly done, can I do it better?
@@ -149,8 +169,12 @@ impl Response {
 		*/
 		
 		// flush the stream
-		bufStream.flush();
-		
+		let result = bufStream.flush();
+		match result {
+			Ok(()) => {},
+			Err(error) => { println!("Stream flush error: {}", error); }
+		}
+
 		return true;
 		
 	

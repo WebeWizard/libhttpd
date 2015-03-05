@@ -1,13 +1,11 @@
 
 use std::fmt::radix;
 use std::sync::mpsc::{Sender,Receiver};
-use std::sync::mpsc::RecvError;
-use std::str;
 
 use encoder::Encoder;
 
 // GLOBAL STATIC CHUNKED ENCODER
-pub const chunked: Encoder = Encoder {name: "chunked", encode: encode};
+pub const CHUNKED: Encoder = Encoder {name: "chunked", encode: encode};
 
 pub fn encode ( rx: Receiver<Vec<u8>>, newtx: Sender<Vec<u8>> )
 {
@@ -15,7 +13,7 @@ pub fn encode ( rx: Receiver<Vec<u8>>, newtx: Sender<Vec<u8>> )
 	println!("chunked");
 	let mut size = 8192;
 	while ( size != 0 ) { 
-		let mut data = rx.recv();
+		let data = rx.recv();
 		match ( data ) {
 			Ok( realdata ) => {
 				size = realdata.len();
@@ -25,7 +23,11 @@ pub fn encode ( rx: Receiver<Vec<u8>>, newtx: Sender<Vec<u8>> )
 				chunk.push_all( hexSizeStr.as_bytes() );
 				chunk.push_all( realdata.as_slice() );
 				chunk.push_all( "\r\n".as_bytes() );
-				newtx.send( chunk );
+				let result = newtx.send( chunk );
+				match result {
+					Ok(()) => {},
+					Err(error) => { println!("Chunked encoder SendError: {}",error); }
+				}
 			},
 			Err(_) => { break; }
 		}

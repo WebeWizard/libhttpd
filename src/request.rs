@@ -30,9 +30,9 @@ impl Request {
 			// a \r\n by itself signals the end of the headers
 			if ( headerSlice == "\r\n" ) { break; }
 			// if it's an actual header, remove the new line chars
-			headerSlice = headerSlice.slice_to( headerSlice.len()-2 );
+			headerSlice = &headerSlice[..headerSlice.len()-2];
 			//get header key and value
-			let mut headerIter = headerSlice.split_str( ": " );
+			let mut headerIter = headerSlice.split( ": " );
 			let headerKey = headerIter.next().unwrap_or("").to_string();
 			let headerValue = headerIter.next().unwrap_or("").to_string();
 			//insert into headers map

@@ -1,6 +1,3 @@
-use std::collections::HashMap;
-
-use encoder::Encoder;
 use request::Request;
 use response::Response;
 use status::Status;
@@ -8,7 +5,7 @@ use status::Status;
 pub struct Method {
 	pub name: &'static str,
 	pub validate: fn ( &Request ) -> Status,
-	pub build_response: fn ( &Request, &HashMap<String,Encoder> ) -> Response
+	pub build_response: fn ( &Request ) -> Response
 }
 
 

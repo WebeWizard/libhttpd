@@ -1,9 +1,5 @@
 use std::io::prelude::*;
-use std::old_io::ChanReader;
 use std::sync::mpsc::{Sender,Receiver};
-use std::sync::mpsc::TryRecvError;
-use std::sync::mpsc::RecvError;
-use std::str;
 use std::io::Error;
 use std::io::ErrorKind::ResourceUnavailable;
 use std::slice::bytes;
@@ -14,15 +10,15 @@ use flate2::Compression;
 use encoder::Encoder;
 
 // TODO: The flate crate doesn't work for this application yet.
-pub const deflate: Encoder = Encoder {name: "deflate", encode: encode };
+pub const DEFLATE: Encoder = Encoder {name: "deflate", encode: encode };
 
-pub struct test {
+pub struct RecvReader {
 	rx: Receiver<Vec<u8>>
 }
 
-impl Read for test {
+impl Read for RecvReader {
 	fn read( &mut self, buf: &mut [u8] ) -> Result<usize,Error> {
-		let mut data = self.rx.recv();
+		let data = self.rx.recv();
 		match ( data ) {
 			Ok(realdata) => {
 				bytes::copy_memory( buf, realdata.as_slice() );
@@ -38,23 +34,27 @@ impl Read for test {
 pub fn encode ( rx: Receiver<Vec<u8>>, newtx: Sender<Vec<u8>> )
 {
 
-	// 'deflate' encoding using flate2 library (zlib)
-	let mut test = test { rx: rx };
-	let mut zl = ZlibEncoder::new( test, Compression::Default );
-	const bufSize: usize = 8192;
-	let mut buf = [0u8; bufSize];
+	// Gzip encoding using flate2 library
+	let recv = RecvReader { rx: rx };
+	let mut zlib = ZlibEncoder::new( recv, Compression::Default );
+	const BUF_SIZE: usize = 8192;
+	let mut buf = [0u8; BUF_SIZE];
 		
-	let mut size = bufSize;
+	let mut size = BUF_SIZE;
 	
 	while ( size != 0 ) {
 		
-		match ( zl.read( buf.as_mut_slice() ) ) {
+		match ( zlib.read( buf.as_mut_slice() ) ) {
 			Ok( newsize ) => { 
 				size = newsize;
 				if ( size == 0 ) { break; }
-				newtx.send( buf[..size].to_vec() );
+				let result = newtx.send( buf[..size].to_vec() );
+				match result {
+					Ok(()) => {},
+					Err(error) => { println!("Gzip encoder SendError: {}",error); }
+				}
 			},
-			Err(error) => { size = 0; }
+			Err(error) => { println!("Gzip Encoder Read Error: {}",error); size = 0; }
 		}
 		
 	}

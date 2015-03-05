@@ -1,6 +1,11 @@
 #![allow(non_snake_case)]
-#![allow(unnecessary_parens)]
 #![allow(unused_parens)]
+#![feature(core)]
+#![feature(collections)]
+#![feature(io)]
+#![feature(old_io)]
+#![feature(old_path)]
+#![feature(os)]
 
 extern crate flate2;
 
