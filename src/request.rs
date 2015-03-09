@@ -1,7 +1,7 @@
 use std::collections::HashMap;
-use std::old_io::BufferedStream;
-use std::old_io::net::tcp::TcpStream;
-use std::old_io::IoResult;
+use std::io::{BufStream,BufRead,Read};
+use std::net::TcpStream;
+use std::io::Error;
 
 pub struct Request {
 	pub method: String,
@@ -11,10 +11,11 @@ pub struct Request {
 }
 
 impl Request {
-	pub fn new( bufStream: &mut BufferedStream<TcpStream> ) -> IoResult<Request> {
+	pub fn new( bufStream: &mut BufStream<TcpStream> ) -> Result<Request,Error> {
 	
 		//read in the first line.  Split it into Method, URI, and Query
-		let line = try!(bufStream.read_line());
+		let mut line = String::new();
+		try!(bufStream.read_line( &mut line ));
 		let lineSlice = line.as_slice();
 		let mut iter = lineSlice.split( ' ' );
 		// get Method
@@ -25,7 +26,8 @@ impl Request {
 		let mut headers = HashMap::<String,String>::new();
 		loop
 		{
-			let header = try!(bufStream.read_line());
+			let mut header = String::new();
+			try!(bufStream.read_line( &mut header ));
 			let mut headerSlice = header.as_slice();
 			// a \r\n by itself signals the end of the headers
 			if ( headerSlice == "\r\n" ) { break; }
@@ -41,7 +43,7 @@ impl Request {
 		
 		let mut messagebody = String::new();
 		if ( headers.contains_key(&"Content-Length".to_string()) || headers.contains_key(&"Transfer-Encoding".to_string()) ) {
-			messagebody = try!( bufStream.read_to_string() );
+			try!( bufStream.read_to_string( &mut messagebody ) );
 		}
 		
 		return Ok( Request{ 

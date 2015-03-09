@@ -1,8 +1,8 @@
 use std::collections::HashMap;
-use std::old_io::BufferedStream;
-use std::old_io::net::tcp::TcpStream;
+use std::io::{BufStream,Write};
+use std::net::TcpStream;
 
-pub fn write_to_stream( headers: &HashMap<String,String> , bufStream: &mut BufferedStream<TcpStream> )
+pub fn write_to_stream( headers: &HashMap<String,String> , bufStream: &mut BufStream<TcpStream> )
 {
 	for ( key, value ) in headers.iter()
 	{

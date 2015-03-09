@@ -1,6 +1,6 @@
 use std::collections::HashMap;
-use std::old_io::net::tcp::TcpStream;
-use std::old_io::BufferedStream;
+use std::net::TcpStream;
+use std::io::{BufStream,Write};
 use std::sync::mpsc::channel;
 use std::sync::mpsc::{Sender,Receiver};
 use std::thread;
@@ -28,7 +28,7 @@ impl Response {
 	}
 	
 	//TODO: return a Result instead of bool
-	pub fn respond( &mut self, request: &Request, encoders: &HashMap<String,Encoder> , bufStream: &mut BufferedStream<TcpStream> ) -> bool {
+	pub fn respond( &mut self, request: &Request, encoders: &HashMap<String,Encoder> , bufStream: &mut BufStream<TcpStream> ) -> bool {
 		// write the status line
 		let statusLine = format!( "HTTP/1.1 {} {}\r\n", self.status.code, self.status.reason );
 		let result = bufStream.write_all( statusLine.as_bytes() );

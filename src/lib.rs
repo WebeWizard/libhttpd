@@ -6,6 +6,7 @@
 #![feature(old_io)]
 #![feature(old_path)]
 #![feature(os)]
+#![feature(net)]
 
 extern crate flate2;
 

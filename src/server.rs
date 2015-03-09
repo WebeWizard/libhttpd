@@ -1,7 +1,7 @@
 use std::collections::HashMap;
-use std::old_io::{TcpListener, TcpStream};
-use std::old_io::{Acceptor, Listener};
-use std::old_io::BufferedStream;
+use std::net::{TcpListener, TcpStream};
+use std::io::BufStream;
+use std::io::Error;
 use std::thread;
 use std::sync::Arc;
 
@@ -13,7 +13,6 @@ use method::Method;
 use Methods::GET::GET;
 use request::Request;
 use response::Response;
-use Errors::stream_error::StreamError;
 
 pub struct Server {
 	pub ip: String,
@@ -49,15 +48,16 @@ impl Server {
 	pub fn start(&self) -> bool {
 	
 		let mut result = true;
-		let listener = TcpListener::bind(( self.ip.as_slice() , self.port ));
+		let mut address = self.ip.clone();
+		address.push(':');
+		address.push_str( self.port.clone().to_string().as_slice() );
+		let listener = TcpListener::bind( address.as_slice() );
 		
 		match listener {
 			Err(error) => { println!("Could not bind listener to ip: {}",error); result = false; }
-			Ok(listener) => {
-				let mut acceptor = listener.listen();
-				
+			Ok(listener) => {	
 				// process connections while the socket is still alive
-				for stream in acceptor.incoming() {
+				for stream in listener.incoming() {
 					match stream {
 						Err(error) => { println!("Listener error: {}",error); }
 						Ok(stream) => {
@@ -76,14 +76,14 @@ impl Server {
 					}
 				}
 				// if for some reason the socket dies, drop the acceptor
-				drop(acceptor);
+				drop(listener);
 			}
 		}
 		return result;
 	}
 	
-	fn handle_client( stream: TcpStream, methods: &HashMap<String,Method>, encoders: &HashMap<String,Encoder>) -> Result<bool,StreamError> {
-		let mut bufStream = BufferedStream::new(stream);
+	fn handle_client( stream: TcpStream, methods: &HashMap<String,Method>, encoders: &HashMap<String,Encoder>) -> Result<bool,Error> {
+		let mut bufStream = BufStream::new(stream);
 		
 		// Keep connections alive while Keep-Alive header is present
 		let mut keepAlive = true;
