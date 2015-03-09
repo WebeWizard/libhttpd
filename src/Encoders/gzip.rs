@@ -10,7 +10,7 @@ use flate2::Compression;
 use encoder::Encoder;
 
 // TODO: The flate crate doesn't work for this application yet.
-pub const GZIP: Encoder = Encoder {name: "gzip", encode: encode };
+pub const GZIP: Encoder = Encoder {name: "gzip", weight: 100u8, encode: encode };
 
 pub struct RecvReader {
 	rx: Receiver<Vec<u8>>
@@ -25,7 +25,7 @@ impl Read for RecvReader {
 				
 				return Ok( realdata.len() );
 			},
-			Err(_) => { return Err( Error::new( ResourceUnavailable, "lol", Some("lol".to_string()))); }
+			Err(_) => { return Err( Error::new( ResourceUnavailable, "RecvReader Error", Some("Error trying to read from channel receiver".to_string()))); }
 		}
 		
 	}

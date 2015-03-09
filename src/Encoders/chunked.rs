@@ -5,7 +5,7 @@ use std::sync::mpsc::{Sender,Receiver};
 use encoder::Encoder;
 
 // GLOBAL STATIC CHUNKED ENCODER
-pub const CHUNKED: Encoder = Encoder {name: "chunked", encode: encode};
+pub const CHUNKED: Encoder = Encoder {name: "chunked", weight: 100u8, encode: encode};
 
 pub fn encode ( rx: Receiver<Vec<u8>>, newtx: Sender<Vec<u8>> )
 {

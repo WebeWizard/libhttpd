@@ -34,7 +34,10 @@ impl Server {
 		// build a map of Encoders that we want available on the server
 		let mut encoders= HashMap::<String,Encoder>::new();
 		encoders.insert("gzip".to_string() , GZIP );
-		encoders.insert("deflate".to_string() , DEFLATE );
+		// we want to prefer gzip encoding over deflate, so set deflate's weight lower.
+		let mut deflate = DEFLATE;
+		deflate.weight = 90u8;
+		encoders.insert("deflate".to_string() , deflate );
 		encoders.insert("chunked".to_string() , CHUNKED ); // chunked is necessary to support 'keep-alive'
 		let encoders_arc = Arc::new( encoders );
 		

@@ -41,10 +41,20 @@ impl Response {
 		let mut selected_encoders = Vec::<Encoder>::new();
 		if ( request.headers.contains_key( &"Accept-Encoding".to_string() ) ) {
 			let requested_encodings = request.headers.get( &"Accept-Encoding".to_string() ).unwrap();
+			let mut weight = 0u8;
 			for requestedEncoder in requested_encodings.split(", ") {
 				if ( requestedEncoder != "chunked" && encoders.contains_key( &requestedEncoder.to_string() ) ) {
-					// for now assume we only want to use one type of encoding at a time
-					selected_encoders.push( encoders.get( &requestedEncoder.to_string() ).unwrap().clone() );
+					let this_encoder = encoders.get( &requestedEncoder.to_string() ).unwrap().clone();
+					// if this encoder has more weight, clear the vec
+					if ( this_encoder.weight > weight ) {
+						selected_encoders.clear();
+						weight = this_encoder.weight;
+						selected_encoders.push( this_encoder );
+					}
+					// if this encoder is equal weight, add it to the end of the vec
+					else if ( this_encoder.weight == weight ) {
+						selected_encoders.push( this_encoder );
+					}
 				}
 			}
 			// if any transfer encodings are used, the last encoding must be chunked
@@ -135,7 +145,12 @@ impl Response {
 				_ => {}
 			}
 		}
-		println!("done sending");
+		println!("done sending"); // not sure why we need to send two empty vecs, but encoders complain otherwise
+		let result = tx.send( Vec::<u8>::new() );
+		match result {
+			Ok(()) => {},
+			Err(error) => { println!("Encoders sender error: {}", error); }
+		}
 		let result = tx.send( Vec::<u8>::new() );
 		match result {
 			Ok(()) => {},
@@ -163,10 +178,6 @@ impl Response {
 			}
 		}
 
-		// TODO: this is very poorly done, can I do it better?
-		/*
-		
-		*/
 		
 		// flush the stream
 		let result = bufStream.flush();

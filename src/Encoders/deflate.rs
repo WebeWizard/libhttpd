@@ -9,8 +9,7 @@ use flate2::Compression;
 
 use encoder::Encoder;
 
-// TODO: The flate crate doesn't work for this application yet.
-pub const DEFLATE: Encoder = Encoder {name: "deflate", encode: encode };
+pub const DEFLATE: Encoder = Encoder {name: "deflate", weight: 100u8, encode: encode };
 
 pub struct RecvReader {
 	rx: Receiver<Vec<u8>>
