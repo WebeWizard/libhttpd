@@ -11,7 +11,7 @@ A convenient library for embedding http servers into Rust projects.
 
 Currently coded against Rust nightlies. 
 
-Test the provided example server by running '**cargo test**' and then adding files you want to serve to the '**target/debug**' directory.
+Test the provided example server by running '**cargo test**' and then adding files you want to serve to the '**target/debug**' directory.  Server is currently bound to 127.0.0.1 ( localhost ) port 8080.
 
 
 
