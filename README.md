@@ -15,5 +15,5 @@ Test the provided example server by running '**cargo test**' and then adding fil
 
 
 
-####Update - 03/04/15
-Completely rewrote the library.  Had to remove contexts for now, but this version now has multi-threaded encoding for http message bodies.  Currently only gzip and chunked are available, deflate will be available soon.
+####Update - 03/09/15
+Deflate content encoding is now available.  Encoders now have weights associated with them.  The default is 100u8, Heavier weights take preference over lower weights.  Set two encoders with equal weight to use them both at once.
