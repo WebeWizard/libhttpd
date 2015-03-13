@@ -44,14 +44,20 @@ fn validate( request: &Request ) -> Status {
 fn build_response( request: &Request ) -> Response {
 	// Validate the Request to get the Status
 	let status = validate( request );
+	let mut messageBody = Box::new( "".as_bytes() ) as Box<Reader>;
+	match status.code {
+		200 => {
+			let uri = request.uri.as_slice();
+			let workingPath = os::self_exe_path().unwrap();
+			let mut workingStr = workingPath.as_str().unwrap().to_string();
+			workingStr.push_str( uri );
+			let path = Path::new( workingStr );
+			let file: File = File::open( &path ).unwrap();
+			messageBody = Box::new( BufferedReader::new( file ) );
+		},
+		_ => { messageBody = Box::new( status.reason.as_bytes() ); },
+	}
 	
-	let uri = request.uri.as_slice();
-	let workingPath = os::self_exe_path().unwrap();
-	let mut workingStr = workingPath.as_str().unwrap().to_string();
-	workingStr.push_str( uri );
-	let path = Path::new( workingStr );
-	let file: File = File::open( &path ).unwrap();
-	let messageBody = Box::new( BufferedReader::new( file ) );
 	
 	
 	// ------ HEADERS -----

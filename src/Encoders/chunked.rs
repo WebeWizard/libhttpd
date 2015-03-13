@@ -10,7 +10,6 @@ pub const CHUNKED: Encoder = Encoder {name: "chunked", weight: 100u8, encode: en
 pub fn encode ( rx: Receiver<Vec<u8>>, newtx: Sender<Vec<u8>> )
 {
 
-	println!("chunked");
 	let mut size = 8192;
 	while ( size != 0 ) { 
 		let data = rx.recv();
