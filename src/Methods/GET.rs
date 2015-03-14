@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 use std::os;
-use std::old_io::BufferedReader;
-use std::old_io::File;
-use std::old_io::fs::PathExtensions;
+use std::io::BufReader;
+use std::io::Read;
+use std::fs::File;
+use std::path::PathBuf;
+use std::fs::PathExt;
 
 use request::Request;
 use response::Response;
@@ -13,20 +15,12 @@ use status::Status;
 // GET METHOD
 pub const GET: Method = Method {name: "GET", validate: validate, build_response: build_response};
 
-pub enum ResponseType {
-	FILE,
-	DIR,
-	ERROR
-}
-
 fn validate( request: &Request ) -> Status {
-	let uri = request.uri.as_slice();
-	let workingPath = os::self_exe_path().unwrap();
-	let mut workingStr = workingPath.as_str().unwrap().to_string();
-	workingStr.push_str( uri );
-	let path = Path::new( workingStr );
-	
-	//println!("{}",path.display() );
+	// create a new absolute path using the current working directory as a base
+	let mut path = PathBuf::new( &os::self_exe_path().unwrap() );
+	// take off the leading '/' from the uri to make the path relative instead of absolute
+	// push relative uri onto the path
+	path.push( &request.uri[1..] );
 	
 	if ( path.is_file() ) {
 		// if the path points to a file
@@ -44,16 +38,16 @@ fn validate( request: &Request ) -> Status {
 fn build_response( request: &Request ) -> Response {
 	// Validate the Request to get the Status
 	let status = validate( request );
-	let mut messageBody = Box::new( "".as_bytes() ) as Box<Reader>;
+	let mut messageBody = Box::new( "".as_bytes() ) as Box<Read>;
 	match status.code {
 		200 => {
-			let uri = request.uri.as_slice();
-			let workingPath = os::self_exe_path().unwrap();
-			let mut workingStr = workingPath.as_str().unwrap().to_string();
-			workingStr.push_str( uri );
-			let path = Path::new( workingStr );
+			// create a new absolute path using the current working directory as a base
+			// push the uri without the leading / to make path to file.
+			let mut path = PathBuf::new( &os::self_exe_path().unwrap() );
+			path.push( &request.uri[1..] );
+			// open the file, and set a buffered reader to it as the messageBody
 			let file: File = File::open( &path ).unwrap();
-			messageBody = Box::new( BufferedReader::new( file ) );
+			messageBody = Box::new( BufReader::new( file ) );
 		},
 		_ => { messageBody = Box::new( status.reason.as_bytes() ); },
 	}

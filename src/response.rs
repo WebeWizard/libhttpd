@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::net::TcpStream;
-use std::io::{BufStream,Write};
+use std::io::{BufStream,Read,Write};
 use std::sync::mpsc::channel;
 use std::sync::mpsc::{Sender,Receiver};
 use std::thread;
@@ -15,7 +15,7 @@ use headers;
 pub struct Response {
 	pub status: Status,
 	pub headers: HashMap< String, String >,
-	pub messageBody: Box<Reader>
+	pub messageBody: Box<Read>
 }
 
 impl Response {
