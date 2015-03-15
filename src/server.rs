@@ -102,14 +102,14 @@ impl Server {
 				Some(value) => 
 					if ( value.as_slice() == "keep-alive" || value.as_slice() == "Keep-Alive" ) { 
 						keepAlive = true;
-					},
+					} else { keepAlive = false; },
 				_ => { keepAlive = false; }
 			}
 			match response.headers.get(&"Connection".to_string()) {
 				Some(value) => 
 					if ( value.as_slice() == "keep-alive" || value.as_slice() == "Keep-Alive" ) { 
 						keepAlive = true;
-					},
+					} else { keepAlive = false; },
 				_ => { keepAlive = false; }
 			}
 			
