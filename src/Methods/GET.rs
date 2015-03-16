@@ -56,9 +56,9 @@ fn build_response( request: &Request ) -> Response {
 			let file: File = File::open( &path ).unwrap();
 			messageBody = Box::new( BufReader::new( file ) );
 			// get the mime-type of the file and add it to response
-			let t = Types::new().ok().expect("Types didn't load");
-			let mimetype = path.extension().unwrap().to_str().unwrap();
-			headers.insert( "content-type".to_string(), mimetype.to_string() );
+			//let t = Types::new().ok().expect("Types didn't load");
+			//let mimetype = path.extension().unwrap().to_str().unwrap();
+			//headers.insert( "content-type".to_string(), mimetype.to_string() );
 		},
 		_ => { messageBody = Box::new( status.reason.as_bytes() ); },
 	}

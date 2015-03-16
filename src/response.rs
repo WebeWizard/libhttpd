@@ -64,8 +64,8 @@ impl Response {
 		}
 		// if no encoders are selected, we need to use identity
 		// if Content-Length has been set by Method, then we can keep the connection alive
-		if ( !selected_encoders.is_empty() || ( selected_encoders.is_empty() && self.headers.contains_key("Content-Length") ) ) {
-			match request.headers.get(&"connection".to_string()) {
+		if ( !selected_encoders.is_empty() || ( selected_encoders.is_empty() && self.headers.contains_key("content-length") ) ) {
+			match request.headers.get("connection") {
 				Some(value) => 
 					if ( value.as_slice() == "keep-alive" || value.as_slice() == "Keep-Alive") { 
 						self.headers.insert( "connection".to_string() , "keep-alive".to_string() );
