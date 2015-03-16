@@ -39,8 +39,8 @@ impl Response {
 		
 		// decide what transfer-encodings to apply (these headers are independent of the Response Method)
 		let mut selected_encoders = Vec::<Encoder>::new();
-		if ( request.headers.contains_key( &"Accept-Encoding".to_string() ) ) {
-			let requested_encodings = request.headers.get( &"Accept-Encoding".to_string() ).unwrap();
+		if ( request.headers.contains_key( &"accept-encoding".to_string() ) ) {
+			let requested_encodings = request.headers.get( &"accept-encoding".to_string() ).unwrap();
 			let mut weight = 0u8;
 			for requestedEncoder in requested_encodings.split(", ") {
 				if ( requestedEncoder != "chunked" && encoders.contains_key( &requestedEncoder.to_string() ) ) {
@@ -65,10 +65,10 @@ impl Response {
 		// if no encoders are selected, we need to use identity
 		// if Content-Length has been set by Method, then we can keep the connection alive
 		if ( !selected_encoders.is_empty() || ( selected_encoders.is_empty() && self.headers.contains_key("Content-Length") ) ) {
-			match request.headers.get(&"Connection".to_string()) {
+			match request.headers.get(&"connection".to_string()) {
 				Some(value) => 
 					if ( value.as_slice() == "keep-alive" || value.as_slice() == "Keep-Alive") { 
-						self.headers.insert( "Connection".to_string() , "Keep-Alive".to_string() );
+						self.headers.insert( "connection".to_string() , "keep-alive".to_string() );
 					},
 				None => ( /* connection must close */ )
 			}
@@ -78,7 +78,7 @@ impl Response {
 		//build and insert transfer-encoding header
 		if ( !selected_encoders.is_empty() ) {
 	
-			let contentKey = "Content-Encoding".to_string();
+			let contentKey = "content-encoding".to_string();
 			let mut contentValue = "".to_string();
 		
 			for encoder in selected_encoders.iter() {
@@ -86,7 +86,7 @@ impl Response {
 					contentValue.push_str( encoder.name );
 					contentValue.push(',');
 				} else {
-					self.headers.insert( "Transfer-Encoding".to_string(), "chunked".to_string() );
+					self.headers.insert( "transfer-encoding".to_string(), "chunked".to_string() );
 				}
 				
 			}
@@ -101,7 +101,7 @@ impl Response {
 		
 		
 		// write the header	
-		self.headers.insert( "Content-Type".to_string(), "application/octet-stream".to_string() );
+		self.headers.insert( "content-type".to_string(), "application/octet-stream".to_string() );
 		headers::write_to_stream( &self.headers , bufStream );
 		
 		// end the headers
@@ -119,13 +119,12 @@ impl Response {
 			newrx = newThread( newrx, encoder.encode );
 		}
 		
-		// write the message
+		// encode the message
 		const BUF_SIZE: usize = 8192;
 		let mut buf = [0u8; BUF_SIZE];
-		
 		let mut size = BUF_SIZE;
 		
-		while ( size == BUF_SIZE ) {
+		while ( size != 0 ) {
 			// clear the bufVec from the previous iteration
 			let mut bufVec: Vec<u8> = vec![];
 			// fill the buffer with new data
@@ -145,28 +144,24 @@ impl Response {
 				_ => {}
 			}
 		}
-		println!("done sending"); // not sure why we need to send two empty vecs, but encoders complain otherwise
-		let result = tx.send( Vec::<u8>::new() );
-		match result {
-			Ok(()) => {},
-			Err(error) => { println!("Encoders sender error: {}", error); }
-		}
-		let result = tx.send( Vec::<u8>::new() );
-		match result {
-			Ok(()) => {},
-			Err(error) => { println!("Encoders sender error: {}", error); }
-		}
-		drop(tx);
 		
-		let recvIter = newrx.iter();
-		for encoded in recvIter {
-			let result = bufStream.write_all( encoded.as_slice() );
-			match result {
-				Ok(()) => {},
-				Err(error) => { println!("Stream write error: {}", error); }
+		// read and send the encoded message
+		size = BUF_SIZE;
+		while ( size != 0 ) {
+			match ( newrx.recv( ) ) {
+				Ok( data ) => { 
+					size = data.len();
+					//println!("{}",size);
+					let result = bufStream.write_all( data.as_slice() );
+					match result {
+						Ok(()) => {},
+						Err(error) => { println!("Stream write error: {}", error); }
+					}
+				},
+				Err(error) => { println!("Response Encoders Read Error: {}",error); size = 0; }
 			}
-		}
 		
+		}
 				
 		// if there was a transfer encoding, then the last method is chunked
 		// send the ending chunk and ending line

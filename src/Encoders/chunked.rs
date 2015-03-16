@@ -16,6 +16,11 @@ pub fn encode ( rx: Receiver<Vec<u8>>, newtx: Sender<Vec<u8>> )
 		match ( data ) {
 			Ok( realdata ) => {
 				size = realdata.len();
+				// if we recieved an empty vector, then the encoding is done, send an empty vector to signal EOF
+				if ( size == 0 ) {
+					newtx.send( Vec::<u8>::new() );
+					break;
+				}
 				let mut hexSizeStr = radix(realdata.len(),16).to_string();
 				hexSizeStr.push_str( "\r\n" );
 				let mut chunk: Vec<u8> = vec![];

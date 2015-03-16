@@ -3,9 +3,8 @@
 #![feature(core)]
 #![feature(collections)]
 #![feature(io)]
-#![feature(old_io)]
-#![feature(old_path)]
 #![feature(os)]
+#![feature(path_ext)]
 #![feature(net)]
 
 extern crate flate2;

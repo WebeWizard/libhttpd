@@ -7,7 +7,7 @@ pub struct Request {
 	pub method: String,
 	pub uri: String,
 	pub headers: HashMap< String, String >,
-	pub messagebody: String
+	pub messagebody: Box<Read>
 }
 
 impl Request {
@@ -33,24 +33,25 @@ impl Request {
 			if ( headerSlice == "\r\n" ) { break; }
 			// if it's an actual header, remove the new line chars
 			headerSlice = &headerSlice[..headerSlice.len()-2];
-			//get header key and value
+			// get header key and value
 			let mut headerIter = headerSlice.split( ": " );
-			let headerKey = headerIter.next().unwrap_or("").to_string();
-			let headerValue = headerIter.next().unwrap_or("").to_string();
-			//insert into headers map
+			// headers are supposed to be case insensitive, so let's set them all to lowercase
+			let headerKey = headerIter.next().unwrap_or("").to_lowercase();
+			let headerValue = headerIter.next().unwrap_or("").to_lowercase();
+			// insert into headers map
 			headers.insert( headerKey, headerValue );
 		}
-		
-		let mut messagebody = String::new();
-		if ( headers.contains_key(&"Content-Length".to_string()) || headers.contains_key(&"Transfer-Encoding".to_string()) ) {
-			try!( bufStream.read_to_string( &mut messagebody ) );
+		let mut messageBody = Box::new( "".as_bytes() ) as Box<Read>;
+		if ( headers.contains_key(&"content-length".to_string()) || headers.contains_key(&"transfer-encoding".to_string()) ) {
+			let newBufStream = BufStream::new( try!( bufStream.get_mut().try_clone() ) );
+			messageBody = Box::new( newBufStream );
 		}
 		
 		return Ok( Request{ 
 			method: method,
 			uri: uri,
 			headers: headers,
-			messagebody: messagebody
+			messagebody: messageBody
 		} );
 	}
 }

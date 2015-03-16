@@ -1,13 +1,13 @@
 use std::error::Error;
 use std::error::FromError;
-use std::old_io::IoError;
+use std::io;
 
 use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Result;
 
 pub enum RequestError {
-	Io(IoError)
+	Io(io::Error)
 }
 
 impl Error for RequestError {
@@ -31,8 +31,8 @@ impl Display for RequestError {
 }
 
 
-impl FromError<IoError> for RequestError {
-	fn from_error(err: IoError) -> RequestError {
+impl FromError<io::Error> for RequestError {
+	fn from_error(err: io::Error) -> RequestError {
 		RequestError::Io(err)
 	}
 }

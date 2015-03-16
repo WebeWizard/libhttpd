@@ -38,7 +38,7 @@ fn validate( request: &Request ) -> Status {
 fn build_response( request: &Request ) -> Response {
 	// Validate the Request to get the Status
 	let status = validate( request );
-	let mut messageBody = Box::new( "".as_bytes() ) as Box<Read>;
+	let mut messageBody: Box<Read>;
 	match status.code {
 		200 => {
 			// create a new absolute path using the current working directory as a base

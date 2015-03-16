@@ -1,6 +1,6 @@
 use std::error::Error;
 use std::error::FromError;
-use std::old_io::IoError;
+use std::io;
 
 use std::fmt::Display;
 use std::fmt::Formatter;
@@ -10,7 +10,7 @@ use Errors::request_error::RequestError;
 
 pub enum StreamError {
 	Request(RequestError),
-	Io(IoError)
+	Io(io::Error)
 }
 
 impl Error for StreamError {
@@ -42,8 +42,8 @@ impl FromError<RequestError> for StreamError {
 	}
 }
 
-impl FromError<IoError> for StreamError {
-	fn from_error(err: IoError) -> StreamError {
+impl FromError<io::Error> for StreamError {
+	fn from_error(err: io::Error) -> StreamError {
 		StreamError::Io(err)
 	}
 }

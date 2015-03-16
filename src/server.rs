@@ -35,7 +35,7 @@ impl Server {
 		encoders.insert("gzip".to_string() , GZIP );
 		// we want to prefer gzip encoding over deflate, so set deflate's weight lower.
 		let mut deflate = DEFLATE;
-		deflate.weight = 90u8;
+		//deflate.weight = 90u8;
 		encoders.insert("deflate".to_string() , deflate );
 		encoders.insert("chunked".to_string() , CHUNKED ); // chunked is necessary to support 'keep-alive'
 		let encoders_arc = Arc::new( encoders );
@@ -97,20 +97,24 @@ impl Server {
 			
 			response.respond( &request, encoders, &mut bufStream );
 			
-			// if both client and server want to keep the client alive, then do so
-			match request.headers.get(&"Connection".to_string()) {
+			// if both client and server want to keep the connection alive, then do so
+			match request.headers.get("connection") {
 				Some(value) => 
-					if ( value.as_slice() == "keep-alive" || value.as_slice() == "Keep-Alive" ) { 
+					if ( value.as_slice() == "keep-alive" || value.as_slice() == "keep-alive" ) { 
 						keepAlive = true;
 					} else { keepAlive = false; },
 				_ => { keepAlive = false; }
 			}
-			match response.headers.get(&"Connection".to_string()) {
-				Some(value) => 
-					if ( value.as_slice() == "keep-alive" || value.as_slice() == "Keep-Alive" ) { 
-						keepAlive = true;
-					} else { keepAlive = false; },
-				_ => { keepAlive = false; }
+			if keepAlive {
+				// note: responses also check for the clients' keep-alive request,
+				// but checking again here makes sure we don't keep the thread alive if a custom method
+				match response.headers.get("connection") {
+					Some(value) => 
+						if ( value.as_slice() == "keep-alive" || value.as_slice() == "keep-Alive" ) { 
+							keepAlive = true;
+						} else { keepAlive = false; },
+					_ => { keepAlive = false; }
+				}
 			}
 			
 		}
