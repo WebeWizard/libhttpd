@@ -8,6 +8,7 @@
 #![feature(net)]
 
 extern crate flate2;
+extern crate "conduit-mime-types" as mime;
 
 pub mod server;
 pub mod method;

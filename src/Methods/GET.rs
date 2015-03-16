@@ -3,8 +3,11 @@ use std::os;
 use std::io::BufReader;
 use std::io::Read;
 use std::fs::File;
+use std::path::Path;
 use std::path::PathBuf;
 use std::fs::PathExt;
+
+use mime::Types;
 
 use request::Request;
 use response::Response;
@@ -38,6 +41,10 @@ fn validate( request: &Request ) -> Status {
 fn build_response( request: &Request ) -> Response {
 	// Validate the Request to get the Status
 	let status = validate( request );
+	
+	// ------ HEADERS -----
+	let mut headers = HashMap::<String,String>::new();
+	
 	let mut messageBody: Box<Read>;
 	match status.code {
 		200 => {
@@ -48,14 +55,17 @@ fn build_response( request: &Request ) -> Response {
 			// open the file, and set a buffered reader to it as the messageBody
 			let file: File = File::open( &path ).unwrap();
 			messageBody = Box::new( BufReader::new( file ) );
+			// get the mime-type of the file and add it to response
+			let t = Types::new().ok().expect("Types didn't load");
+			let mimetype = path.extension().unwrap().to_str().unwrap();
+			headers.insert( "content-type".to_string(), mimetype.to_string() );
 		},
 		_ => { messageBody = Box::new( status.reason.as_bytes() ); },
 	}
 	
 	
 	
-	// ------ HEADERS -----
-	let headers = HashMap::<String,String>::new();
+	
 	
 	return Response { status: status , headers: headers, messageBody: messageBody };
 }

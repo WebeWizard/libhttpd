@@ -100,8 +100,7 @@ impl Response {
 		
 		
 		
-		// write the header	
-		self.headers.insert( "content-type".to_string(), "application/octet-stream".to_string() );
+		// write the header
 		headers::write_to_stream( &self.headers , bufStream );
 		
 		// end the headers
