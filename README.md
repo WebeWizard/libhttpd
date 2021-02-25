@@ -1,7 +1,11 @@
-#libhttpd
+# libhttpd
 A convenient library for embedding http servers into Rust projects.
 
-####Current Features - 03/04/15
+
+### Update - 02/24/21
+* Not working on this repo anymore. Please see my new monorepo at https://github.com/WebeWizard/lib-webe which contains another http server library (and more).
+
+#### Current Features - 03/04/15
 * keep-alive
 * 'get' response
 * gzip content encoding
@@ -15,10 +19,6 @@ Test the provided example server by running '**cargo test**' and then adding fil
 
 
 
-####Update - 02/24/21
-* Not working on this repo anymore. Please see my new monorepo at https://github.com/WebeWizard/lib-webe which contains another http server library (and more).
-
-
-####Update - 03/09/15
+#### Update - 03/09/15
 * Deflate content encoding is now available.  Encoders now have weights associated with them.  The default is 100u8, Heavier weights take preference over lower weights.  Set two encoders with equal weight to use them both at once.
 * Switched internal tcp streams over to Rust's new IO api.
